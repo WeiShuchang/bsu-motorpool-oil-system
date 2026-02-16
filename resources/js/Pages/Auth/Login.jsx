@@ -53,11 +53,13 @@ export default function Login({ status, canResetPassword }) {
                 {/* Login Card */}
                 <div className="bg-white rounded-xl border w-full max-w-md shadow-lg border-green-100 mt-10">
                     {/* Card Header */}
-                    <div className="px-6 pt-6 pb-2 space-y-4">
+                    <div className="px-6 pt-6 pb-2 space-y-1">
                         <div className="flex items-center justify-center">
-                            <div className="bg-green-600 p-3 rounded-full">
-                                <Droplet className="size-8 text-white" />
-                            </div>
+                               <img 
+                                    src="/storage/icons/bsu_motorpool-removebg-preview.png" 
+                                    alt="BSU Motorpool Logo" 
+                                    className="w-16 h-16 object-contain"
+                                />
                         </div>
                         <div className="text-center space-y-2">
                             <h4 className="text-xl font-bold text-green-700">
