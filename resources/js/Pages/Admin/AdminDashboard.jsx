@@ -24,7 +24,7 @@ export default function AdminDashboard() {
     const stats = [
         { 
             label: 'Total Vehicles', 
-            value: '24', 
+            value: '0', 
             icon: Car, 
             color: 'green',
             bgColor: 'bg-green-50',
@@ -33,7 +33,7 @@ export default function AdminDashboard() {
         },
         { 
             label: 'Active Drivers', 
-            value: '18', 
+            value: '0', 
             icon: Users, 
             color: 'blue',
             bgColor: 'bg-blue-50',
@@ -42,7 +42,7 @@ export default function AdminDashboard() {
         },
         { 
             label: 'Service Records', 
-            value: '156', 
+            value: '0', 
             icon: FileText, 
             color: 'purple',
             bgColor: 'bg-purple-50',
@@ -50,8 +50,8 @@ export default function AdminDashboard() {
             iconColor: 'text-purple-500'
         },
         { 
-            label: 'Due Soon', 
-            value: '8', 
+            label: 'Reports', 
+            value: '0', 
             icon: Clock, 
             color: 'yellow',
             bgColor: 'bg-yellow-50',
@@ -305,10 +305,7 @@ export default function AdminDashboard() {
                                     <button className="p-2 border border-green-200 rounded-lg hover:bg-green-50">
                                         <Filter className="size-4 text-gray-600" />
                                     </button>
-                                    <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-                                        <Plus className="size-4" />
-                                        Add New
-                                    </button>
+                       
                                 </div>
                             </div>
                         </div>
@@ -323,12 +320,11 @@ export default function AdminDashboard() {
                                             <tr className="border-b border-green-100">
                                                 <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Plate Number</th>
                                                 <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
-                                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Driver</th>
                                                 <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Mileage</th>
                                                 <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Last Service</th>
                                                 <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Next Due</th>
                                                 <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                 
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-green-50">
@@ -336,16 +332,12 @@ export default function AdminDashboard() {
                                                 <tr key={vehicle.id} className="hover:bg-green-50/50 transition-colors">
                                                     <td className="py-3 px-4 font-medium text-green-700">{vehicle.plate}</td>
                                                     <td className="py-3 px-4 text-gray-600">{vehicle.model} ({vehicle.year})</td>
-                                                    <td className="py-3 px-4 text-gray-600">{vehicle.driver}</td>
+                                                 
                                                     <td className="py-3 px-4 text-gray-600">{vehicle.mileage}</td>
                                                     <td className="py-3 px-4 text-gray-600">{vehicle.lastService}</td>
                                                     <td className="py-3 px-4 text-gray-600">{vehicle.nextDue}</td>
                                                     <td className="py-3 px-4">{getStatusBadge(vehicle.status, vehicle.statusColor)}</td>
-                                                    <td className="py-3 px-4">
-                                                        <button className="text-gray-400 hover:text-green-600">
-                                                            <Eye className="size-4" />
-                                                        </button>
-                                                    </td>
+                                                  
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -360,11 +352,11 @@ export default function AdminDashboard() {
                                         <thead>
                                             <tr className="border-b border-green-100">
                                                 <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Number</th>
                                                 <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                                 <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Vehicles</th>
                                                 <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Last Active</th>
-                                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-green-50">
@@ -372,17 +364,11 @@ export default function AdminDashboard() {
                                                 <tr key={driver.id} className="hover:bg-green-50/50 transition-colors">
                                                     <td className="py-3 px-4 font-medium text-green-700">{driver.name}</td>
                                                     <td className="py-3 px-4 text-gray-600">{driver.email}</td>
+                                                    <td className="py-3 px-4 text-gray-600">{driver.email}</td>
                                                     <td className="py-3 px-4 text-gray-600">{driver.vehicles}</td>
                                                     <td className="py-3 px-4">{getStatusBadge(driver.status, driver.statusColor)}</td>
-                                                    <td className="py-3 px-4 text-gray-600">{driver.lastActive}</td>
-                                                    <td className="py-3 px-4">
-                                                        <button className="text-gray-400 hover:text-green-600 mr-2">
-                                                            <Eye className="size-4" />
-                                                        </button>
-                                                        <button className="text-gray-400 hover:text-green-600">
-                                                            <MoreVertical className="size-4" />
-                                                        </button>
-                                                    </td>
+                         
+                                          
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -402,7 +388,7 @@ export default function AdminDashboard() {
                                                 <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Service Type</th>
                                                 <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Mileage</th>
                                                 <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                      
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-green-50">
@@ -414,11 +400,7 @@ export default function AdminDashboard() {
                                                     <td className="py-3 px-4 text-gray-600">{record.type}</td>
                                                     <td className="py-3 px-4 text-gray-600">{record.mileage}</td>
                                                     <td className="py-3 px-4">{getStatusBadge(record.status, 'green')}</td>
-                                                    <td className="py-3 px-4">
-                                                        <button className="text-gray-400 hover:text-green-600">
-                                                            <Eye className="size-4" />
-                                                        </button>
-                                                    </td>
+                                                  
                                                 </tr>
                                             ))}
                                         </tbody>

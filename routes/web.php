@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\DriverController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\VehicleController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -34,10 +36,20 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('Admin/AdminDashboard');
     })->middleware('auth')->name('admin.dashboard');
 
+    Route::get('/admin/drivers', [DriverController::class, 'showDriverPage'])
+        ->middleware('auth')
+        ->name('admin.drivers');
+
+    Route::get('/admin/vehicles', [VehicleController::class, 'showVehiclePage'])
+        ->middleware('auth')
+        ->name('admin.vehicles');
+
     // Driver routes
     Route::get('/driver/dashboard', function () {
         return Inertia::render('Driver/DriverDashboard');
     })->middleware('auth')->name('driver.dashboard');
+
+
 
     // Profile routes (accessible by both)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

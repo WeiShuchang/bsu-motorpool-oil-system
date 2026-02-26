@@ -9,8 +9,8 @@ export default function AdminHeader() {
 
     const navigation = [
         { name: 'Dashboard', href: route('admin.dashboard'), icon: LayoutDashboard, current: route().current('admin.dashboard') },
-        { name: 'Vehicles', href: '#', icon: Truck, current: false },
-        { name: 'Drivers', href: '#', icon: Users, current: false },
+        { name: 'Vehicles', href: route('admin.vehicles'), icon: Truck, current: route().current('admin.vehicles') },
+        { name: 'Drivers', href: route('admin.drivers'), icon: Users, current: route().current('admin.drivers')},
         { name: 'Service Records', href: '#', icon: Droplet, current: false },
     ];
 
