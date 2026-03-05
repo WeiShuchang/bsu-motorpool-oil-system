@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import { X, Upload, XCircle, Camera, Car } from 'lucide-react';
+import axios from 'axios';
+import { useToast } from '@/Hooks/useToast';
 
-export default function EditVehicleModal({ isOpen, onClose, vehicle }) {
+export default function EditVehicleModal({ isOpen, onClose, vehicle, onSave }) {
+     const { showToast } = useToast();
     const [formData, setFormData] = useState({
         make: '',
         model: '',
@@ -25,25 +28,38 @@ export default function EditVehicleModal({ isOpen, onClose, vehicle }) {
         }
     }, [isOpen]);
 
-    useEffect(() => {
-        if (vehicle && isOpen) {
-            setFormData({
-                make: vehicle.make || '',
-                model: vehicle.model || '',
-                seat_capacity: vehicle.seat_capacity || '',
-                status: vehicle.status || 'available',
-                transmission: vehicle.transmission || 'manual',
-                images: [],
-                existing_images: vehicle.images || []
-            });
-            
-            // Load existing image previews
-            if (vehicle.images && vehicle.images.length > 0) {
-                const previews = vehicle.images.map(img => `/storage/${img}`);
-                setImagePreviews(previews);
+   useEffect(() => {
+    if (vehicle && isOpen) {
+        // Parse the images if they're stored as JSON string
+        let existingImages = [];
+        if (vehicle.driver_images) {
+            try {
+                existingImages = JSON.parse(vehicle.driver_images);
+            } catch (e) {
+                existingImages = [];
             }
         }
-    }, [vehicle, isOpen]);
+
+        setFormData({
+            make: vehicle.make || '',
+            model: vehicle.model || '',
+            seat_capacity: vehicle.seat_capacity || '',
+            plate_number: vehicle.plate_number || '',
+            status: vehicle.status || 'available',
+            transmission: vehicle.transmission || 'manual',
+            images: [],
+            existing_images: existingImages
+        });
+        
+        // Load existing image previews
+        if (existingImages.length > 0) {
+            const previews = existingImages.map(img => `/storage/${img}`);
+            setImagePreviews(previews);
+        } else {
+            setImagePreviews([]);
+        }
+    }
+}, [vehicle, isOpen]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -83,41 +99,50 @@ export default function EditVehicleModal({ isOpen, onClose, vehicle }) {
         
         setImagePreviews(prev => prev.filter((_, i) => i !== index));
     };
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrors({});
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        setErrors({});
+    const submitData = new FormData();
+    submitData.append('make', formData.make);
+    submitData.append('model', formData.model);
+    submitData.append('seat_capacity', formData.seat_capacity);
+    submitData.append('status', formData.status);
+    submitData.append('transmission', formData.transmission);
+    
+    // Append existing images to keep
+    formData.existing_images.forEach((image, index) => {
+        submitData.append(`existing_images[${index}]`, image);
+    });
+    
 
-        const submitData = new FormData();
-        submitData.append('_method', 'PUT');
-        submitData.append('make', formData.make);
-        submitData.append('model', formData.model);
-        submitData.append('seat_capacity', formData.seat_capacity);
-        submitData.append('status', formData.status);
-        submitData.append('transmission', formData.transmission);
-        
-        // Append existing images to keep
-        formData.existing_images.forEach((image, index) => {
-            submitData.append(`existing_images[${index}]`, image);
+    // With this:
+    formData.images.forEach((image, index) => {
+        submitData.append(`images[${index}]`, image);
+    });
+
+    try {
+        const response = await axios.post(`/admin/vehicles/${vehicle.id}/update`, submitData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
         });
         
-        // Append new images
-        formData.images.forEach((image, index) => {
-            submitData.append(`new_images[${index}]`, image);
-        });
-
-        router.post(route('admin.vehicles.update', vehicle.id), submitData, {
-            onSuccess: () => {
-                setIsSubmitting(false);
-                handleClose();
-            },
-            onError: (errors) => {
-                setIsSubmitting(false);
-                setErrors(errors);
-            }
-        });
-    };
+        setIsSubmitting(false);
+        showToast('Vehicle updated successfully', 'success');
+        
+        if (onSave) {
+            onSave(response.data);
+        }
+        
+        
+        handleClose();
+    } catch (error) {
+        setIsSubmitting(false);
+        if (error.response && error.response.data.errors) {
+            setErrors(error.response.data.errors);
+        }
+    }
+};
 
     const handleClose = () => {
         setIsVisible(false);

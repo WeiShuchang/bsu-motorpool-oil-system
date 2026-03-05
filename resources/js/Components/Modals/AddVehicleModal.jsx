@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import { X, Upload, XCircle, Camera, Car } from 'lucide-react';
+import axios from 'axios';
+import { useToast } from '@/Hooks/useToast';
 
-export default function AddVehicleModal({ isOpen, onClose }) {
+export default function AddVehicleModal({ isOpen, onClose, onSave }) {
+    const { showToast } = useToast(); 
     const [formData, setFormData] = useState({
         make: '',
         model: '',
         seat_capacity: '',
+        plate_number: '', // Add this line
         status: 'available',
         transmission: 'manual',
         images: []
@@ -54,42 +58,63 @@ export default function AddVehicleModal({ isOpen, onClose }) {
         }));
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        setErrors({});
+    const handleSubmit = async (e) => {
+            e.preventDefault();
+            setIsSubmitting(true);
+            setErrors({});
 
-        const submitData = new FormData();
-        submitData.append('make', formData.make);
-        submitData.append('model', formData.model);
-        submitData.append('seat_capacity', formData.seat_capacity);
-        submitData.append('status', formData.status);
-        submitData.append('transmission', formData.transmission);
-        
-        formData.images.forEach((image, index) => {
-            submitData.append(`images[${index}]`, image);
-        });
+            const submitData = new FormData();
+            submitData.append('make', formData.make);
+            submitData.append('model', formData.model);
+            submitData.append('seat_capacity', formData.seat_capacity);
+            submitData.append('plate_number', formData.plate_number);
+            submitData.append('status', formData.status);
+            submitData.append('transmission', formData.transmission);
+            
+            formData.images.forEach((image, index) => {
+                submitData.append(`images[${index}]`, image);
+            });
 
-        router.post(route('admin.vehicles.store'), submitData, {
-            onSuccess: () => {
+            try {
+                const response = await axios.post('/admin/vehicles/store', submitData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                
                 setIsSubmitting(false);
+                showToast('Vehicle added successfully', 'success'); // Add this line
+                
+                if (onSave) {
+                    onSave(response.data);
+                }
                 setFormData({
                     make: '',
                     model: '',
                     seat_capacity: '',
+                    plate_number: '',
                     status: 'available',
                     transmission: 'manual',
                     images: []
                 });
                 setImagePreviews([]);
                 handleClose();
-            },
-            onError: (errors) => {
+            } catch (error) {
                 setIsSubmitting(false);
-                setErrors(errors);
+                if (error.response && error.response.data.errors) {
+                    const friendlyErrors = {};
+                    Object.keys(error.response.data.errors).forEach(key => {
+                        if (key === 'make') friendlyErrors[key] = 'Please enter a valid vehicle make';
+                        else if (key === 'model') friendlyErrors[key] = 'Please enter a valid vehicle model';
+                        else if (key === 'seat_capacity') friendlyErrors[key] = 'Please enter a valid seat capacity';
+                        else if (key === 'plate_number') friendlyErrors[key] = 'Please enter a valid plate number';
+                        else if (key === 'transmission') friendlyErrors[key] = 'Please select a transmission type';
+                        else if (key === 'status') friendlyErrors[key] = 'Please select a valid status';
+                        else if (key.includes('images')) friendlyErrors.images = 'Please upload valid images (JPG, PNG only)';
+                        else friendlyErrors[key] = error.response.data.errors[key][0];
+                    });
+                    setErrors(friendlyErrors);
+                }
             }
-        });
-    };
+        };
 
     const handleClose = () => {
         setIsVisible(false);
@@ -204,6 +229,8 @@ export default function AddVehicleModal({ isOpen, onClose }) {
                                 )}
                             </div>
 
+                            
+
                             {/* Make and Model */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
@@ -287,8 +314,27 @@ export default function AddVehicleModal({ isOpen, onClose }) {
                                     )}
                                 </div>
                             </div>
+<div className="grid grid-cols-2 gap-3">
 
                             {/* Status */}
+                                          <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                    Plate Number <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="plate_number"
+                                    value={formData.plate_number}
+                                    onChange={handleInputChange}
+                                    className="w-full px-3 py-1.5 text-sm border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400"
+                                    placeholder="e.g., ABC-1234"
+                                    style={{ borderRadius: '4px' }}
+                                    required
+                                />
+                                {errors.plate_number && (
+                                    <p className="mt-1 text-xs text-red-600">{errors.plate_number}</p>
+                                )}
+                            </div>
                             <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">
                                     Vehicle Status
@@ -309,6 +355,8 @@ export default function AddVehicleModal({ isOpen, onClose }) {
                                     <p className="mt-1 text-xs text-red-600">{errors.status}</p>
                                 )}
                             </div>
+              
+</div>
                         </div>
 
                         {/* Form Actions */}

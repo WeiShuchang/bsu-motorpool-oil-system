@@ -1,10 +1,11 @@
 import { Link, usePage, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Search, Filter, Image as ImageIcon, Car } from 'lucide-react';
 import AddVehicleModal from '@/Components/Modals/AddVehicleModal';
 import EditVehicleModal from '@/Components/Modals/EditVehicleModal';
 import DeleteVehicleModal from '@/Components/Modals/DeleteVehicleModal';
 import AdminHeader from '@/Components/AdminHeader';
+import axios from 'axios';
 
 export default function Vehicles() {
     const { auth } = usePage().props;
@@ -13,112 +14,61 @@ export default function Vehicles() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [vehicles, setVehicles] = useState([]);
 
-    // Dummy data for vehicles
-    const [vehicles, setVehicles] = useState([
-        {
-            id: 1,
-            make: 'Toyota',
-            model: 'Hilux',
-            year: 2022,
-            plate_number: 'ABC-1234',
-            seat_capacity: 5,
-            transmission: 'Manual',
-            fuel_type: 'Diesel',
-            status: 'available',
-            images: null,
-            last_maintenance: '2024-01-15',
-            next_maintenance: '2024-04-15',
-            color: 'White',
-            engine_number: 'ENG-2022-001',
-            chassis_number: 'CHS-2022-001'
-        },
-        {
-            id: 2,
-            make: 'Mitsubishi',
-            model: 'Xpander',
-            year: 2023,
-            plate_number: 'XYZ-5678',
-            seat_capacity: 7,
-            transmission: 'Automatic',
-            fuel_type: 'Gasoline',
-            status: 'in_use',
-            images: null,
-            last_maintenance: '2024-02-20',
-            next_maintenance: '2024-05-20',
-            color: 'Silver',
-            engine_number: 'ENG-2023-002',
-            chassis_number: 'CHS-2023-002'
-        },
-        {
-            id: 3,
-            make: 'Nissan',
-            model: 'Urvan',
-            year: 2021,
-            plate_number: 'DEF-9012',
-            seat_capacity: 15,
-            transmission: 'Manual',
-            fuel_type: 'Diesel',
-            status: 'maintenance',
-            images: null,
-            last_maintenance: '2024-03-01',
-            next_maintenance: '2024-03-15',
-            color: 'Gray',
-            engine_number: 'ENG-2021-003',
-            chassis_number: 'CHS-2021-003'
-        },
-        {
-            id: 4,
-            make: 'Ford',
-            model: 'Ranger',
-            year: 2023,
-            plate_number: 'GHI-3456',
-            seat_capacity: 5,
-            transmission: 'Automatic',
-            fuel_type: 'Diesel',
-            status: 'available',
-            images: null,
-            last_maintenance: '2024-02-10',
-            next_maintenance: '2024-05-10',
-            color: 'Red',
-            engine_number: 'ENG-2023-004',
-            chassis_number: 'CHS-2023-004'
-        },
-        {
-            id: 5,
-            make: 'Hyundai',
-            model: 'H-100',
-            year: 2022,
-            plate_number: 'JKL-7890',
-            seat_capacity: 12,
-            transmission: 'Manual',
-            fuel_type: 'Diesel',
-            status: 'in_use',
-            images: null,
-            last_maintenance: '2024-01-25',
-            next_maintenance: '2024-04-25',
-            color: 'Blue',
-            engine_number: 'ENG-2022-005',
-            chassis_number: 'CHS-2022-005'
-        },
-        {
-            id: 6,
-            make: 'Toyota',
-            model: 'Innova',
-            year: 2023,
-            plate_number: 'MNO-1234',
-            seat_capacity: 8,
-            transmission: 'Automatic',
-            fuel_type: 'Diesel',
-            status: 'out_of_service',
-            images: null,
-            last_maintenance: '2024-02-28',
-            next_maintenance: '2024-03-28',
-            color: 'Black',
-            engine_number: 'ENG-2023-006',
-            chassis_number: 'CHS-2023-006'
-        }
-    ]);
+
+const fetchVehicles = async () => {
+    setIsLoading(true);
+    try {
+        const response = await axios.get('/admin/vehicles/data'); // Updated URL
+        setVehicles(response.data);
+    } catch (error) {
+        console.error('Error fetching vehicles:', error);
+    } finally {
+        setIsLoading(false);
+    }
+};
+
+    useEffect(() => {
+        fetchVehicles();
+    }, []);
+
+    // Add this skeleton loader component
+    const TableSkeleton = () => (
+        <>
+            {[1, 2, 3, 4, 5].map((item) => (
+                <tr key={item} className="animate-pulse">
+                    <td className="py-3 px-4">
+                        <div className="size-10 rounded-lg bg-gray-200"></div>
+                    </td>
+                    <td className="py-3 px-4">
+                        <div className="space-y-2">
+                            <div className="h-4 bg-gray-200 rounded w-32"></div>
+                        </div>
+                    </td>
+                    <td className="py-3 px-4">
+                        <div className="h-4 bg-gray-200 rounded w-24"></div>
+                    </td>
+                    <td className="py-3 px-4">
+                        <div className="h-4 bg-gray-200 rounded w-16"></div>
+                    </td>
+                    <td className="py-3 px-4">
+                        <div className="h-4 bg-gray-200 rounded w-20"></div>
+                    </td>
+                    <td className="py-3 px-4">
+                        <div className="h-5 bg-gray-200 rounded-full w-16"></div>
+                    </td>
+                    <td className="py-3 px-4">
+                        <div className="flex gap-2">
+                            <div className="size-4 bg-gray-200 rounded"></div>
+                            <div className="size-4 bg-gray-200 rounded"></div>
+                        </div>
+                    </td>
+                </tr>
+            ))}
+        </>
+    );
 
     const getStatusBadge = (status) => {
         const statusConfig = {
@@ -137,30 +87,25 @@ export default function Vehicles() {
     };
 
     const handleAddVehicle = (newVehicle) => {
-        const vehicleWithId = {
-            ...newVehicle,
-            id: vehicles.length + 1,
-            images: null,
-            last_maintenance: new Date().toISOString().split('T')[0],
-            next_maintenance: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        };
-        setVehicles([...vehicles, vehicleWithId]);
+        setVehicles(prev => [newVehicle, ...prev]);
         setShowAddModal(false);
     };
 
-    const handleEditVehicle = (updatedVehicle) => {
-        setVehicles(vehicles.map(vehicle => 
-            vehicle.id === updatedVehicle.id ? updatedVehicle : vehicle
-        ));
-        setShowEditModal(false);
-        setSelectedVehicle(null);
-    };
+const handleEditVehicle = (updatedVehicle) => {
+    setIsLoading(true);
+    setVehicles(vehicles.map(vehicle => 
+        vehicle.id === updatedVehicle.id ? updatedVehicle : vehicle
+    ));
+    setShowEditModal(false);
+    setSelectedVehicle(null);
+    setTimeout(() => setIsLoading(false), 500);
+};
 
-    const handleDeleteVehicle = () => {
-        setVehicles(vehicles.filter(vehicle => vehicle.id !== selectedVehicle.id));
-        setShowDeleteModal(false);
-        setSelectedVehicle(null);
-    };
+const handleDeleteVehicle = (deletedVehicleId) => {
+    setVehicles(vehicles.filter(vehicle => vehicle.id !== deletedVehicleId));
+    setShowDeleteModal(false);
+    setSelectedVehicle(null);
+};
 
     const filteredVehicles = vehicles.filter(vehicle => 
         vehicle.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -223,19 +168,25 @@ export default function Vehicles() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-green-50">
-                                    {filteredVehicles.map((vehicle) => (
+                                      {isLoading ? (
+                                            <TableSkeleton />
+                                        ) : filteredVehicles.map((vehicle) => (
                                         <tr key={vehicle.id} className="hover:bg-green-50/50 transition-colors">
                                             <td className="py-3 px-4">
                                                 <div className="size-10 rounded-lg bg-green-100 flex items-center justify-center">
-                                                    {vehicle.images ? (
-                                                        <img 
-                                                            src={`/storage/${vehicle.images[0]}`}
-                                                            alt={`${vehicle.make} ${vehicle.model}`}
-                                                            className="size-10 rounded-lg object-cover"
-                                                        />
-                                                    ) : (
-                                                        <Car className="size-5 text-green-600" />
-                                                    )}
+                                                            {vehicle.driver_images ? (
+                                                                <img 
+                                                                    src={`/storage/${JSON.parse(vehicle.driver_images)[0]}`}
+                                                                    alt={`${vehicle.make} ${vehicle.model}`}
+                                                                    className="size-10 rounded-lg object-cover"
+                                                                    onError={(e) => {
+                                                                        e.target.onerror = null;
+                                                                        e.target.parentElement.innerHTML = '<div class="size-5 text-green-600"><Car /></div>';
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <Car className="size-5 text-green-600" />
+                                                            )}
                                                 </div>
                                             </td>
                                             <td className="py-3 px-4">
@@ -286,13 +237,7 @@ export default function Vehicles() {
                                 <Car className="size-12 text-gray-400 mx-auto mb-4" />
                                 <h3 className="text-lg font-medium text-gray-900 mb-2">No vehicles found</h3>
                                 <p className="text-gray-500 mb-4">Get started by adding your first vehicle</p>
-                                <button 
-                                    onClick={() => setShowAddModal(true)}
-                                    className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-                                >
-                                    <Plus className="size-4" />
-                                    Add Vehicle
-                                </button>
+                          
                             </div>
                         )}
                     </div>
@@ -306,24 +251,25 @@ export default function Vehicles() {
                 onSave={handleAddVehicle}
             />
             
-            <EditVehicleModal
-                isOpen={showEditModal}
-                onClose={() => {
-                    setShowEditModal(false);
-                    setSelectedVehicle(null);
-                }}
-                onSave={handleEditVehicle}
-                vehicle={selectedVehicle}
-            />
+         <EditVehicleModal
+    isOpen={showEditModal}
+    onClose={() => {
+        setShowEditModal(false);
+        setSelectedVehicle(null);
+    }}
+    onSave={handleEditVehicle}
+    vehicle={selectedVehicle}
+/>
             
-           <DeleteVehicleModal
-                isOpen={showDeleteModal}
-                onClose={() => {
-                    setShowDeleteModal(false);
-                    setSelectedVehicle(null);
-                }}
-                vehicle={selectedVehicle}  // Pass the entire vehicle object, not just the name
-            />
+      <DeleteVehicleModal
+    isOpen={showDeleteModal}
+    onClose={() => {
+        setShowDeleteModal(false);
+        setSelectedVehicle(null);
+    }}
+    onSuccess={handleDeleteVehicle}
+    vehicle={selectedVehicle}
+/>
         </div>
     );
 }

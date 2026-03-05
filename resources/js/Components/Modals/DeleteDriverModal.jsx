@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
+import axios from 'axios';
+import { useToast } from '@/Hooks/useToast';
 
-export default function DeleteDriverModal({ isOpen, onClose, onConfirm, driverName }) {
+export default function DeleteDriverModal({ isOpen, onClose, onSuccess, driver }) {
+    const { showToast } = useToast();
     const [isVisible, setIsVisible] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -12,17 +16,39 @@ export default function DeleteDriverModal({ isOpen, onClose, onConfirm, driverNa
         }
     }, [isOpen]);
 
-    if (!isOpen) return null;
+    if (!isOpen || !driver) return null;
 
     const handleClose = () => {
         setIsVisible(false);
         setTimeout(onClose, 200);
     };
 
-    const handleConfirm = () => {
-        onConfirm();
+   const handleDelete = async () => {
+    setIsDeleting(true);
+    
+    try {
+        // Use POST with _method spoofing for DELETE
+        await axios.post(`/drivers/${driver.id}`, {
+            _method: 'DELETE'
+        });
+        
+        showToast('Driver deleted successfully', 'success');
+        
+        if (onSuccess) {
+            onSuccess(driver.id);
+        }
+        
         handleClose();
-    };
+    } catch (error) {
+        setIsDeleting(false);
+        
+        if (error.response && error.response.data.message) {
+            showToast(error.response.data.message, 'error');
+        } else {
+            showToast('Failed to delete driver', 'error');
+        }
+    }
+};
 
     return (
         <div 
@@ -72,7 +98,7 @@ export default function DeleteDriverModal({ isOpen, onClose, onConfirm, driverNa
                             </div>
                             <div className="flex-1">
                                 <p className="text-sm text-gray-700">
-                                    Are you sure you want to delete driver <span className="font-semibold">{driverName}</span>?
+                                    Are you sure you want to delete driver <span className="font-semibold">{driver.driver_full_name}</span>?
                                 </p>
                                 <p className="text-xs text-gray-500 mt-2">
                                     This action cannot be undone. The driver will be permanently removed from the system.
@@ -85,17 +111,26 @@ export default function DeleteDriverModal({ isOpen, onClose, onConfirm, driverNa
                     <div className="bg-gray-50 px-5 py-3 flex justify-end gap-2 border-t border-gray-100">
                         <button
                             onClick={handleClose}
-                            className="px-4 py-1.5 border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                            disabled={isDeleting}
+                            className="px-4 py-1.5 border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
                             style={{ borderRadius: '4px' }}
                         >
                             Cancel
                         </button>
                         <button
-                            onClick={handleConfirm}
-                            className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium shadow-sm"
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium shadow-sm disabled:opacity-50 flex items-center gap-2"
                             style={{ borderRadius: '4px' }}
                         >
-                            Delete Driver
+                            {isDeleting ? (
+                                <>
+                                    <span className="animate-spin">⏳</span>
+                                    Deleting...
+                                </>
+                            ) : (
+                                'Delete Driver'
+                            )}
                         </button>
                     </div>
                 </div>

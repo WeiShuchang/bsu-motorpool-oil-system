@@ -13,6 +13,12 @@ return new class extends Migration
     {
         Schema::create('driver_models', function (Blueprint $table) {
             $table->id();
+            $table->string('driver_image')->nullable();
+            $table->string('driver_full_name');
+            $table->string('contact_number');
+            $table->string('license_number');
+            $table->text('address')->nullable();
+            $table->string('status')->default('available');
             $table->timestamps();
         });
     }

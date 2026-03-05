@@ -13,6 +13,16 @@ return new class extends Migration
     {
         Schema::create('vehicle_models', function (Blueprint $table) {
             $table->id();
+            $table->string('driver_images')->nullable();
+            $table->string('make');
+            $table->string('model');
+            $table->integer('seat_capacity');
+            $table->string('coolant')->nullable();
+            $table->string('break_cleaner')->nullable();
+            $table->string('wiper_washer')->nullable();
+            $table->string('engine_flush')->nullable();
+            $table->string('penetrating_oil')->nullable();
+            $table->string('plate_number')->unique();
             $table->timestamps();
         });
     }

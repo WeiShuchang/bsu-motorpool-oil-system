@@ -1,22 +1,29 @@
 import { useState } from 'react';
-import { router } from '@inertiajs/react';
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, Car } from 'lucide-react';
+import axios from 'axios';
+import { useToast } from '@/Hooks/useToast';
 
-export default function DeleteVehicleModal({ isOpen, onClose, vehicle }) {
+export default function DeleteVehicleModal({ isOpen, onClose, vehicle, onSuccess }) {
+    const { showToast } = useToast();
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         setIsDeleting(true);
         
-        router.delete(route('admin.vehicles.destroy', vehicle.id), {
-            onSuccess: () => {
-                setIsDeleting(false);
-                onClose();
-            },
-            onError: () => {
-                setIsDeleting(false);
+        try {
+            await axios.delete(`/admin/vehicles/${vehicle.id}/delete`);
+            
+            showToast('Vehicle deleted successfully', 'success');
+            
+            if (onSuccess) {
+                onSuccess(vehicle.id);
             }
-        });
+            
+            onClose();
+        } catch (error) {
+            setIsDeleting(false);
+            showToast('Failed to delete vehicle', 'error');
+        }
     };
 
     if (!isOpen || !vehicle) return null;
@@ -44,40 +51,41 @@ export default function DeleteVehicleModal({ isOpen, onClose, vehicle }) {
                                     Are you sure?
                                 </h4>
                                 <p className="text-sm text-gray-500 mt-1">
-                                    This action cannot be undone. This will permanently delete the vehicle
-                                    <span className="font-medium text-gray-700"> {vehicle.make} {vehicle.model}</span>.
+                                    This action cannot be undone. This will permanently delete this vehicle.
                                 </p>
                             </div>
                         </div>
 
-                        {/* Vehicle Details Summary */}
-                        <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                            <dl className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <dt className="text-xs font-medium text-gray-500 uppercase">Make</dt>
-                                    <dd className="text-sm font-medium text-gray-900">{vehicle.make}</dd>
-                                </div>
-                                <div>
-                                    <dt className="text-xs font-medium text-gray-500 uppercase">Model</dt>
-                                    <dd className="text-sm font-medium text-gray-900">{vehicle.model}</dd>
-                                </div>
-                                <div>
-                                    <dt className="text-xs font-medium text-gray-500 uppercase">Seats</dt>
-                                    <dd className="text-sm font-medium text-gray-900">{vehicle.seat_capacity}</dd>
-                                </div>
-                                <div>
-                                    <dt className="text-xs font-medium text-gray-500 uppercase">Transmission</dt>
-                                    <dd className="text-sm font-medium text-gray-900">{vehicle.transmission}</dd>
-                                </div>
-                            </dl>
-                        </div>
 
+                 {/* Vehicle Details - Image and Plate Number only */}
+<div className="bg-gray-50 rounded-lg p-4 mb-6 flex flex-col items-center text-center gap-3">
+    <div className="size-20 rounded-lg bg-green-100 flex items-center justify-center overflow-hidden">
+        {vehicle.driver_images ? (
+            <img 
+                src={`/storage/${JSON.parse(vehicle.driver_images)[0]}`}
+                alt={`${vehicle.make} ${vehicle.model}`}
+                className="size-20 object-cover"
+                onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.parentElement.innerHTML = '<div class="size-10 text-green-600"><Car /></div>';
+                }}
+            />
+        ) : (
+            <Car className="size-10 text-green-600" />
+        )}
+    </div>
+    <div>
+        <p className="text-sm font-medium text-gray-700">{vehicle.make} {vehicle.model}</p>
+        <p className="text-sm text-gray-500">Plate: {vehicle.plate_number}</p>
+    </div>
+</div>
                         {/* Form Actions */}
                         <div className="flex justify-end gap-3">
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                                disabled={isDeleting}
+                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                             >
                                 Cancel
                             </button>

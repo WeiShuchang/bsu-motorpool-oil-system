@@ -1,93 +1,177 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Upload, User, Camera, ChevronDown, Check } from 'lucide-react';
+import { X, Upload, User, Camera, ChevronDown, Check, Car } from 'lucide-react';
+import { router } from '@inertiajs/react';
+import { useToast } from '@/Hooks/useToast';
+import axios from 'axios';
 
-export default function EditDriverModal({ isOpen, onClose, onSave, driver }) {
+export default function EditDriverModal({ isOpen, onClose, onSave, driver, availableVehicles = [] }) {
+    const { showToast } = useToast();
+    
     const [formData, setFormData] = useState({
-        id: null,
-        name: '',
+        driver_full_name: '',
         email: '',
-        contact: '',
-        licenseNumber: '',
+        contact_number: '',
+        license_number: '',
         address: '',
         status: 'Active',
-        image: null,
-        assignedVehicles: []
+        driver_image: null,
+        vehicle_ids: []
     });
 
     const [imagePreview, setImagePreview] = useState(null);
+    const [originalImage, setOriginalImage] = useState(null);
     const [isVisible, setIsVisible] = useState(false);
     const [vehicleDropdownOpen, setVehicleDropdownOpen] = useState(false);
-    const [selectedVehicles, setSelectedVehicles] = useState([]);
-    
-    const dropdownRef = useRef(null);
-    const buttonRef = useRef(null);
+    const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errors, setErrors] = useState({});
+    const [touched, setTouched] = useState({});
 
-    // Dummy vehicle data
-    const availableVehicles = [
-        { id: 1, name: 'Toyota Hilux', plate: 'ABC-1234', status: 'available' },
-        { id: 2, name: 'Mitsubishi Xpander', plate: 'XYZ-5678', status: 'available' },
-        { id: 3, name: 'Nissan Urvan', plate: 'DEF-9012', status: 'available' },
-        { id: 4, name: 'Ford Ranger', plate: 'GHI-3456', status: 'maintenance' },
-        { id: 5, name: 'Hyundai H-100', plate: 'JKL-7890', status: 'available' },
-        { id: 6, name: 'Toyota Innova', plate: 'MNO-1234', status: 'available' },
-    ];
+    const dropdownRef = useRef(null);
+    const statusDropdownRef = useRef(null);
+    const buttonRef = useRef(null); 
+    const fileInputRef = useRef(null);
+
+    const statusOptions = ['Active', 'Inactive'];
+
+    // Validation rules
+    const validateField = (name, value) => {
+        switch (name) {
+            case 'driver_full_name':
+                if (!value) return 'Full name is required';
+                if (value.length < 2) return 'Name must be at least 2 characters';
+                if (value.length > 255) return 'Name must not exceed 255 characters';
+                return '';
+            
+            case 'email':
+                if (!value) return 'Email is required';
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(value)) return 'Please enter a valid email address';
+                return '';
+            
+            case 'contact_number':
+                if (!value) return 'Contact number is required';
+                const phoneRegex = /^[\d\s\+\-\(\)]{10,20}$/;
+                if (!phoneRegex.test(value)) return 'Please enter a valid contact number';
+                return '';
+            
+            case 'license_number':
+                if (!value) return 'License number is required';
+                if (value.length < 5) return 'License number must be at least 5 characters';
+                return '';
+            
+            case 'address':
+                if (value && value.length > 1000) return 'Address must not exceed 1000 characters';
+                return '';
+            
+            case 'status':
+                if (!value) return 'Status is required';
+                if (!statusOptions.includes(value)) return 'Invalid status value';
+                return '';
+            
+            case 'driver_image':
+                if (value && value.size > 2 * 1024 * 1024) return 'Image must not exceed 2MB';
+                if (value && !['image/jpeg', 'image/png', 'image/jpg', 'image/gif'].includes(value.type)) {
+                    return 'Image must be JPG, PNG, or GIF format';
+                }
+                return '';
+            
+            default:
+                return '';
+        }
+    };
+
+    const validateForm = () => {
+        const newErrors = {};
+        
+        Object.keys(formData).forEach(key => {
+            if (key !== 'vehicle_ids' && key !== 'address') {
+                const error = validateField(key, formData[key]);
+                if (error) newErrors[key] = error;
+            }
+        });
+        
+        if (formData.address) {
+            const addressError = validateField('address', formData.address);
+            if (addressError) newErrors.address = addressError;
+        }
+        
+        if (formData.driver_image && formData.driver_image instanceof File) {
+            const imageError = validateField('driver_image', formData.driver_image);
+            if (imageError) newErrors.driver_image = imageError;
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleBlur = (field) => {
+        setTouched({ ...touched, [field]: true });
+        const error = validateField(field, formData[field]);
+        if (error) {
+            setErrors({ ...errors, [field]: error });
+        } else {
+            const { [field]: removed, ...rest } = errors;
+            setErrors(rest);
+        }
+    };
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && driver) {
             setIsVisible(true);
+            
+            // Get assigned vehicle IDs from driver
+            const vehicleIds = driver.vehicles ? driver.vehicles.map(v => v.id) : [];
+            
+            setFormData({
+                driver_full_name: driver.driver_full_name || '',
+                email: driver.email || '',
+                contact_number: driver.contact_number || '',
+                license_number: driver.license_number || '',
+                address: driver.address || '',
+                status: driver.status || 'Active',
+                driver_image: null,
+                vehicle_ids: vehicleIds
+            });
+            
+            setOriginalImage(driver.driver_image);
+            if (driver.driver_image) {
+                setImagePreview(driver.driver_image);
+            }
+            
+            setErrors({});
+            setTouched({});
         } else {
             setIsVisible(false);
         }
-    }, [isOpen]);
+    }, [isOpen, driver]);
 
-    // Close dropdown when clicking outside
+    // Close dropdowns when clicking outside
     useEffect(() => {
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setVehicleDropdownOpen(false);
+            }
+            if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
+                setStatusDropdownOpen(false);
             }
         }
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    useEffect(() => {
-        if (driver) {
-            // Simulate some pre-assigned vehicles for existing drivers
-            let assignedVehicles = [];
-            if (driver.id === 1) {
-                assignedVehicles = [availableVehicles[0], availableVehicles[2]];
-            } else if (driver.id === 2) {
-                assignedVehicles = [availableVehicles[1]];
-            } else if (driver.id === 3) {
-                assignedVehicles = [availableVehicles[3], availableVehicles[4]];
-            }
-
-            setFormData({
-                id: driver.id || null,
-                name: driver.name || '',
-                email: driver.email || '',
-                contact: driver.contact || '',
-                licenseNumber: driver.licenseNumber || '',
-                address: driver.address || '',
-                status: driver.status || 'Active',
-                image: driver.image || null,
-                assignedVehicles: assignedVehicles
-            });
-            setSelectedVehicles(assignedVehicles);
-            
-            if (driver.image) {
-                setImagePreview(driver.image);
-            }
-        }
-    }, [driver]);
-
     if (!isOpen || !driver) return null;
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            setFormData({ ...formData, image: file });
+            const error = validateField('driver_image', file);
+            if (error) {
+                showToast(error, 'error');
+                return;
+            }
+            
+            setFormData({ ...formData, driver_image: file });
             const reader = new FileReader();
             reader.onloadend = () => {
                 setImagePreview(reader.result);
@@ -97,27 +181,120 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver }) {
     };
 
     const handleVehicleSelect = (vehicle) => {
-        if (!selectedVehicles.find(v => v.id === vehicle.id)) {
-            const updatedSelection = [...selectedVehicles, vehicle];
-            setSelectedVehicles(updatedSelection);
-            setFormData({ ...formData, assignedVehicles: updatedSelection });
+        if (!formData.vehicle_ids.includes(vehicle.id)) {
+            const updatedIds = [...formData.vehicle_ids, vehicle.id];
+            setFormData({ ...formData, vehicle_ids: updatedIds });
         }
         setVehicleDropdownOpen(false);
     };
 
     const handleVehicleRemove = (vehicleId) => {
-        const updatedSelection = selectedVehicles.filter(v => v.id !== vehicleId);
-        setSelectedVehicles(updatedSelection);
-        setFormData({ ...formData, assignedVehicles: updatedSelection });
+        const updatedIds = formData.vehicle_ids.filter(id => id !== vehicleId);
+        setFormData({ ...formData, vehicle_ids: updatedIds });
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSave(formData);
+   const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Mark all fields as touched
+    const allTouched = {};
+    Object.keys(formData).forEach(key => {
+        allTouched[key] = true;
+    });
+    setTouched(allTouched);
+    
+    // Validate form
+    if (!validateForm()) {
+        showToast('Please fix the validation errors', 'error');
+        return;
+    }
+    
+    setIsSubmitting(true);
+
+    // Create FormData object for file upload
+    const submitData = new FormData();
+    
+    // Add method spoofing for PUT
+    submitData.append('_method', 'PUT');
+    
+    // Append all form fields
+    submitData.append('driver_full_name', formData.driver_full_name);
+    submitData.append('email', formData.email);
+    submitData.append('contact_number', formData.contact_number);
+    submitData.append('license_number', formData.license_number);
+    submitData.append('address', formData.address || '');
+    submitData.append('status', formData.status);
+    
+    // Only append driver_image if a new file was selected
+    if (formData.driver_image instanceof File) {
+        submitData.append('driver_image', formData.driver_image);
+    }
+    
+    // Append vehicle_ids as array
+    formData.vehicle_ids.forEach(id => {
+        submitData.append('vehicle_ids[]', id);
+    });
+
+    try {
+        // Use axios to submit the form
+        const response = await axios.post(`/drivers/${driver.id}`, submitData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            }
+        });
+
+        // Handle success
+        setIsSubmitting(false);
+        showToast('Driver updated successfully', 'success');
+        
+        // Call onSave with the updated driver data
+        if (onSave) {
+            onSave(response.data.driver || response.data);
+        }
+        
+        resetForm();
+        onClose();
+        
+    } catch (error) {
+        setIsSubmitting(false);
+        
+        // Handle validation errors
+        if (error.response && error.response.data.errors) {
+            setErrors(error.response.data.errors);
+            showToast('Failed to update driver', 'error');
+        } else if (error.response && error.response.data.message) {
+            showToast(error.response.data.message, 'error');
+        } else {
+            showToast('An unexpected error occurred', 'error');
+        }
+        
+        console.log('Error:', error);
+    }
+};
+
+    const resetForm = () => {
+        setFormData({
+            driver_full_name: '',
+            email: '',
+            contact_number: '',
+            license_number: '',
+            address: '',
+            status: 'Active',
+            driver_image: null,
+            vehicle_ids: []
+        });
+        setImagePreview(null);
+        setOriginalImage(null);
+        setErrors({});
+        setTouched({});
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     };
 
     const handleClose = () => {
         setIsVisible(false);
+        resetForm();
         setTimeout(onClose, 200);
     };
 
@@ -128,6 +305,19 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver }) {
             case 'in_use': return 'text-blue-600 bg-blue-50';
             default: return 'text-gray-600 bg-gray-50';
         }
+    };
+
+    const getStatusColor = (status) => {
+        switch(status) {
+            case 'Active': return 'text-green-600 bg-green-50';
+            case 'Inactive': return 'text-gray-600 bg-gray-50';
+            default: return 'text-gray-600 bg-gray-50';
+        }
+    };
+
+    // Helper to get selected vehicle details
+    const getSelectedVehicleDetails = (vehicleId) => {
+        return availableVehicles.find(v => v.id === vehicleId);
     };
 
     return (
@@ -149,7 +339,7 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver }) {
 
                 {/* Modal panel */}
                 <div 
-                    className={`inline-block align-bottom bg-white text-left overflow-visible shadow-xl transform transition-all duration-300 sm:my-8 sm:align-middle sm:max-w-lg sm:w-full ${
+                    className={`inline-block align-bottom bg-white text-left overflow-hidden shadow-xl transform transition-all duration-300 sm:my-8 sm:align-middle sm:max-w-lg sm:w-full ${
                         isVisible 
                             ? 'translate-y-0 opacity-100' 
                             : 'translate-y-4 opacity-0 sm:translate-y-0 sm:scale-95'
@@ -171,7 +361,7 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver }) {
 
                     <form onSubmit={handleSubmit} className="bg-white">
                         <div className="px-5 py-4 space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
-                            {/* Image Upload - Rounded image */}
+                            {/* Image Upload */}
                             <div className="flex items-center gap-4">
                                 <div className="relative flex-shrink-0">
                                     <div className="size-16 rounded-full bg-green-50 border-2 border-green-200 flex items-center justify-center overflow-hidden">
@@ -194,8 +384,9 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver }) {
                                     <input
                                         type="file"
                                         id="edit-image-upload"
+                                        ref={fileInputRef}
                                         className="hidden"
-                                        accept="image/*"
+                                        accept="image/jpeg,image/png,image/jpg,image/gif"
                                         onChange={handleImageChange}
                                     />
                                 </div>
@@ -203,15 +394,9 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver }) {
                                     <p className="text-xs text-gray-500">
                                         Update photo (JPG, PNG, GIF. Max 2MB)
                                     </p>
-                                    <button
-                                        type="button"
-                                        onClick={() => document.getElementById('edit-image-upload').click()}
-                                        className="mt-1 inline-flex items-center gap-1 px-3 py-1 border border-green-200 text-xs font-medium text-green-700 hover:bg-green-50"
-                                        style={{ borderRadius: '4px' }}
-                                    >
-                                        <Upload className="size-3" />
-                                        Change Photo
-                                    </button>
+                                    {touched.driver_image && errors.driver_image && (
+                                        <p className="text-xs text-red-600 mt-1">{errors.driver_image}</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -224,12 +409,18 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver }) {
                                     <input
                                         type="text"
                                         required
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-3 py-1.5 text-sm border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400"
+                                        value={formData.driver_full_name}
+                                        onChange={(e) => setFormData({ ...formData, driver_full_name: e.target.value })}
+                                        onBlur={() => handleBlur('driver_full_name')}
+                                        className={`w-full px-3 py-1.5 text-sm border ${
+                                            touched.driver_full_name && errors.driver_full_name ? 'border-red-500' : 'border-gray-200'
+                                        } focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400`}
                                         placeholder="Juan Dela Cruz"
                                         style={{ borderRadius: '4px' }}
                                     />
+                                    {touched.driver_full_name && errors.driver_full_name && (
+                                        <p className="text-xs text-red-600 mt-1">{errors.driver_full_name}</p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -241,10 +432,16 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver }) {
                                         required
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        className="w-full px-3 py-1.5 text-sm border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400"
+                                        onBlur={() => handleBlur('email')}
+                                        className={`w-full px-3 py-1.5 text-sm border ${
+                                            touched.email && errors.email ? 'border-red-500' : 'border-gray-200'
+                                        } focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400`}
                                         placeholder="juan@bsumotorpool.edu"
                                         style={{ borderRadius: '4px' }}
                                     />
+                                    {touched.email && errors.email && (
+                                        <p className="text-xs text-red-600 mt-1">{errors.email}</p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -254,12 +451,18 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver }) {
                                     <input
                                         type="tel"
                                         required
-                                        value={formData.contact}
-                                        onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                                        className="w-full px-3 py-1.5 text-sm border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400"
+                                        value={formData.contact_number}
+                                        onChange={(e) => setFormData({ ...formData, contact_number: e.target.value })}
+                                        onBlur={() => handleBlur('contact_number')}
+                                        className={`w-full px-3 py-1.5 text-sm border ${
+                                            touched.contact_number && errors.contact_number ? 'border-red-500' : 'border-gray-200'
+                                        } focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400`}
                                         placeholder="+63 912 345 6789"
                                         style={{ borderRadius: '4px' }}
                                     />
+                                    {touched.contact_number && errors.contact_number && (
+                                        <p className="text-xs text-red-600 mt-1">{errors.contact_number}</p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -269,13 +472,74 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver }) {
                                     <input
                                         type="text"
                                         required
-                                        value={formData.licenseNumber}
-                                        onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
-                                        className="w-full px-3 py-1.5 text-sm border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400"
+                                        value={formData.license_number}
+                                        onChange={(e) => setFormData({ ...formData, license_number: e.target.value })}
+                                        onBlur={() => handleBlur('license_number')}
+                                        className={`w-full px-3 py-1.5 text-sm border ${
+                                            touched.license_number && errors.license_number ? 'border-red-500' : 'border-gray-200'
+                                        } focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400`}
                                         placeholder="D01-23-456789"
                                         style={{ borderRadius: '4px' }}
                                     />
+                                    {touched.license_number && errors.license_number && (
+                                        <p className="text-xs text-red-600 mt-1">{errors.license_number}</p>
+                                    )}
                                 </div>
+                            </div>
+
+                            {/* Status Dropdown */}
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                    Status <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative" ref={statusDropdownRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                                        onBlur={() => handleBlur('status')}
+                                        className={`w-full px-3 py-1.5 text-sm border ${
+                                            touched.status && errors.status ? 'border-red-500' : 'border-gray-200'
+                                        } bg-white hover:bg-gray-50 flex items-center justify-between`}
+                                        style={{ borderRadius: '4px' }}
+                                    >
+                                        <span>{formData.status}</span>
+                                        <ChevronDown className={`size-4 text-gray-400 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    {statusDropdownOpen && (
+                                        <div 
+                                            className="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded shadow-lg max-h-60 overflow-y-auto"
+                                            style={{
+                                                top: '100%',
+                                                left: 0,
+                                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)'
+                                            }}
+                                        >
+                                            {statusOptions.map(status => (
+                                                <div
+                                                    key={status}
+                                                    onClick={() => {
+                                                        setFormData({ ...formData, status });
+                                                        setStatusDropdownOpen(false);
+                                                    }}
+                                                    className="px-3 py-2 hover:bg-green-50 cursor-pointer flex items-center justify-between"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`text-xs px-1.5 py-0.5 rounded ${getStatusColor(status)}`}>
+                                                            {status}
+                                                        </div>
+                                                    </div>
+                                                    {formData.status === status && (
+                                                        <Check className="size-4 text-green-600" />
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                {touched.status && errors.status && (
+                                    <p className="text-xs text-red-600 mt-1">{errors.status}</p>
+                                )}
                             </div>
 
                             <div>
@@ -285,26 +549,17 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver }) {
                                 <textarea
                                     value={formData.address}
                                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                    onBlur={() => handleBlur('address')}
                                     rows="2"
-                                    className="w-full px-3 py-1.5 text-sm border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400"
+                                    className={`w-full px-3 py-1.5 text-sm border ${
+                                        touched.address && errors.address ? 'border-red-500' : 'border-gray-200'
+                                    } focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400`}
                                     placeholder="Complete address"
                                     style={{ borderRadius: '4px' }}
                                 />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
-                                    Status
-                                </label>
-                                <select
-                                    value={formData.status}
-                                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                    className="w-full px-3 py-1.5 text-sm border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400"
-                                    style={{ borderRadius: '4px' }}
-                                >
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
-                                </select>
+                                {touched.address && errors.address && (
+                                    <p className="text-xs text-red-600 mt-1">{errors.address}</p>
+                                )}
                             </div>
 
                             {/* Vehicle Assignment Section */}
@@ -314,29 +569,57 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver }) {
                                 </label>
                                 
                                 {/* Selected Vehicles Tags */}
-                                {selectedVehicles.length > 0 ? (
+                                {formData.vehicle_ids.length > 0 ? (
                                     <div className="flex flex-wrap gap-2 mb-3">
-                                        {selectedVehicles.map(vehicle => (
+                                     {formData.vehicle_ids.map(vehicleId => {
+                                        const vehicle = getSelectedVehicleDetails(vehicleId);
+                                        return vehicle ? (
                                             <div 
-                                                key={vehicle.id}
+                                                key={vehicleId}
                                                 className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 border border-green-200 rounded"
                                             >
-                                                <span className="text-xs text-green-700">{vehicle.name}</span>
+                                                {/* Add vehicle image */}
+                                                <div className="size-5 rounded bg-green-100 flex items-center justify-center overflow-hidden">
+                                                    {(() => {
+                                                        let vehicleImage = null;
+                                                        if (vehicle.driver_images) {
+                                                            try {
+                                                                const images = JSON.parse(vehicle.driver_images);
+                                                                vehicleImage = images.length > 0 ? `/storage/${images[0]}` : null;
+                                                            } catch (e) {
+                                                                vehicleImage = null;
+                                                            }
+                                                        }
+                                                        return vehicleImage ? (
+                                                            <img 
+                                                                src={vehicleImage} 
+                                                                alt={vehicle.make}
+                                                                className="size-5 object-cover"
+                                                            />
+                                                        ) : (
+                                                            <Car className="size-3 text-green-600" />
+                                                        );
+                                                    })()}
+                                                </div>
+                                                <span className="text-xs text-green-700">
+                                                    {vehicle.make} {vehicle.model} - {vehicle.plate_number}
+                                                </span>
                                                 <button
                                                     type="button"
-                                                    onClick={() => handleVehicleRemove(vehicle.id)}
+                                                    onClick={() => handleVehicleRemove(vehicleId)}
                                                     className="text-green-500 hover:text-green-700"
                                                 >
                                                     <X className="size-3" />
                                                 </button>
                                             </div>
-                                        ))}
+                                        ) : null;
+                                    })}
                                     </div>
                                 ) : (
                                     <p className="text-sm text-gray-500 mb-3">No vehicles assigned</p>
                                 )}
 
-                                {/* Vehicle Dropdown - Fixed positioning */}
+                                {/* Vehicle Dropdown */}
                                 <div className="relative" ref={dropdownRef}>
                                     <button
                                         type="button"
@@ -349,64 +632,100 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver }) {
                                         <ChevronDown className={`size-4 text-gray-400 transition-transform ${vehicleDropdownOpen ? 'rotate-180' : ''}`} />
                                     </button>
 
-                                    {/* Dropdown Menu - Now with higher z-index and positioned absolutely relative to the button */}
-                                    {vehicleDropdownOpen && (
+                                    {vehicleDropdownOpen && availableVehicles && (
                                         <div 
                                             className="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded shadow-lg max-h-60 overflow-y-auto"
                                             style={{
                                                 top: '100%',
                                                 left: 0,
-                                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
+                                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)'
                                             }}
                                         >
-                                            {availableVehicles.map(vehicle => {
-                                                const isSelected = selectedVehicles.find(v => v.id === vehicle.id);
-                                                return (
-                                                    <div
-                                                        key={vehicle.id}
-                                                        onClick={() => !isSelected && handleVehicleSelect(vehicle)}
-                                                        className={`px-3 py-2 hover:bg-green-50 cursor-pointer flex items-center justify-between ${
-                                                            isSelected ? 'bg-green-50 opacity-50' : ''
-                                                        }`}
-                                                    >
+                                     {availableVehicles.map(vehicle => {
+                                            const isSelected = formData.vehicle_ids.includes(vehicle.id);
+                                            
+                                            // Parse images if they exist
+                                            let vehicleImage = null;
+                                            if (vehicle.driver_images) {
+                                                try {
+                                                    const images = JSON.parse(vehicle.driver_images);
+                                                    vehicleImage = images.length > 0 ? `/storage/${images[0]}` : null;
+                                                } catch (e) {
+                                                    vehicleImage = null;
+                                                }
+                                            }
+                                            
+                                            return (
+                                                <div
+                                                    key={vehicle.id}
+                                                    onClick={() => !isSelected && handleVehicleSelect(vehicle)}
+                                                    className={`px-3 py-2 hover:bg-green-50 cursor-pointer flex items-center justify-between ${
+                                                        isSelected ? 'bg-green-50 opacity-50' : ''
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        {/* Vehicle Image */}
+                                                        <div className="size-8 rounded bg-green-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                                            {vehicleImage ? (
+                                                                <img 
+                                                                    src={vehicleImage} 
+                                                                    alt={`${vehicle.make} ${vehicle.model}`}
+                                                                    className="size-8 object-cover"
+                                                                />
+                                                            ) : (
+                                                                <Car className="size-4 text-green-600" />
+                                                            )}
+                                                        </div>
+                                                        
+                                                        {/* Vehicle Details */}
                                                         <div className="flex items-center gap-2">
+                                                            <span className="text-sm font-medium text-gray-700">{vehicle.make} {vehicle.model}</span>
+                                                            <span className="text-xs text-gray-500">{vehicle.plate_number}</span>
                                                             <div className={`text-xs px-1.5 py-0.5 rounded ${getVehicleStatusColor(vehicle.status)}`}>
                                                                 {vehicle.status}
                                                             </div>
-                                                            <span className="text-sm">{vehicle.name}</span>
-                                                            <span className="text-xs text-gray-500">{vehicle.plate}</span>
                                                         </div>
-                                                        {isSelected && (
-                                                            <Check className="size-4 text-green-600" />
-                                                        )}
                                                     </div>
-                                                );
-                                            })}
+                                                    {isSelected && (
+                                                        <Check className="size-4 text-green-600 flex-shrink-0" />
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                         </div>
                                     )}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Select additional vehicles to assign to this driver
-                                </p>
+                                {errors.vehicle_ids && (
+                                    <p className="text-xs text-red-600 mt-1">{errors.vehicle_ids}</p>
+                                )}
                             </div>
                         </div>
 
-                        {/* Form Actions - Fixed at bottom */}
+                        {/* Form Actions */}
                         <div className="bg-gray-50 px-5 py-3 flex justify-end gap-2 border-t border-gray-100">
                             <button
                                 type="button"
                                 onClick={handleClose}
-                                className="px-4 py-1.5 border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                                disabled={isSubmitting}
+                                className="px-4 py-1.5 border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
                                 style={{ borderRadius: '4px' }}
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
-                                className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium shadow-sm"
+                                disabled={isSubmitting}
+                                className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium shadow-sm disabled:opacity-50 flex items-center gap-2"
                                 style={{ borderRadius: '4px' }}
                             >
-                                Save Changes
+                                {isSubmitting ? (
+                                    <>
+                                        <span className="animate-spin">⏳</span>
+                                        Saving...
+                                    </>
+                                ) : (
+                                    'Save Changes'
+                                )}
                             </button>
                         </div>
                     </form>
