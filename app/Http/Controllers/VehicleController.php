@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DriverModel;
+use App\Models\ServiceRecordModel;
 use App\Models\VehicleModel;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -112,4 +114,63 @@ public function update(Request $request, VehicleModel $vehicle)
 
         return response()->json(['message' => 'Vehicle deleted successfully']);
     }
+
+  
+ public function fetchAdminVehicles()
+    {
+        $vehicles = VehicleModel::select([
+                'id',
+                'driver_images',
+                'plate_number',
+                'make',
+                'model',
+                'seat_capacity',
+                'status',
+            ])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($vehicle) {
+                $lastService = ServiceRecordModel::where('vehicle_id', $vehicle->id)
+                    ->orderBy('service_date', 'desc')
+                    ->value('service_date');
+ 
+                $images = json_decode($vehicle->driver_images, true);
+                $firstImage = collect($images)->first(fn($path) => !empty($path));
+ 
+                return [
+                    'id'           => $vehicle->id,
+                    'image'        => $firstImage ? asset('storage/' . $firstImage) : null,
+                    'plate'        => $vehicle->plate_number,
+                    'make'         => $vehicle->make,
+                    'model'        => $vehicle->model,
+                    'seatCapacity' => $vehicle->seat_capacity,
+                    'lastService'  => $lastService
+                                        ? \Carbon\Carbon::parse($lastService)->format('M d, Y')
+                                        : '—',
+                    'status'       => $vehicle->status,
+                    'statusColor'  => match (strtolower($vehicle->status)) {
+                        'on track' => 'green',
+                        'due soon' => 'yellow',
+                        'overdue'  => 'red',
+                        default    => 'green',
+                    },
+                ];
+            });
+ 
+        return response()->json([
+            'vehicles' => $vehicles,
+        ]);
+    }
+
+            public function fetchAdminStats()
+    {
+        return response()->json([
+            'totalVehicles'   => VehicleModel::count(),
+            'activeDrivers'   => DriverModel::where('status', 'active')->count(),
+            'serviceRecords'  => ServiceRecordModel::count(),
+            'reports'         => 0,
+        ]);
+    }
+
+
 }

@@ -1,90 +1,65 @@
+// Components/Modals/DeleteServiceRecordModal.jsx
 import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 import { useToast } from '@/Hooks/useToast';
 
-export default function DeleteDriverModal({ isOpen, onClose, onSuccess, driver }) {
+export default function DeleteServiceRecordModal({ isOpen, onClose, onSuccess, record }) {
     const { showToast } = useToast();
     const [isVisible, setIsVisible] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
-        if (isOpen) {
-            setIsVisible(true);
-        } else {
-            setIsVisible(false);
-        }
+        if (isOpen) setIsVisible(true);
+        else        setIsVisible(false);
     }, [isOpen]);
 
-    if (!isOpen || !driver) return null;
+    if (!isOpen || !record) return null;
 
     const handleClose = () => {
         setIsVisible(false);
         setTimeout(onClose, 200);
     };
 
-const handleDelete = async () => {
-    setIsDeleting(true);
-    
-    try {
-        // Use POST with _method spoofing for DELETE
-        await axios.post(`/drivers/${driver.id}`, {
-            _method: 'DELETE'
-        });
-        
-        showToast('Driver deleted successfully', 'success');
-        
-        if (onSuccess) {
-            onSuccess(driver.id);
+    const handleDelete = async () => {
+        setIsDeleting(true);
+        try {
+            await axios.post(`/service-records/${record.id}`, { _method: 'DELETE' });
+
+            showToast('Service record deleted successfully', 'success');
+            if (onSuccess) onSuccess(record.id);
+            setIsDeleting(false);
+            handleClose();
+        } catch (error) {
+            setIsDeleting(false);
+            showToast(
+                error.response?.data?.message || 'Failed to delete service record',
+                'error'
+            );
         }
-        
-        setIsDeleting(false); // Add this line to reset the state
-        handleClose();
-    } catch (error) {
-        setIsDeleting(false);
-        
-        if (error.response && error.response.data.message) {
-            showToast(error.response.data.message, 'error');
-        } else {
-            showToast('Failed to delete driver', 'error');
-        }
-    }
-};
+    };
 
     return (
-        <div 
-            className={`fixed inset-0 z-50 overflow-y-auto transition-opacity duration-300 ${
-                isVisible ? 'opacity-100' : 'opacity-0'
-            }`}
-        >
+        <div className={`fixed inset-0 z-50 overflow-y-auto transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
             <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                {/* Background overlay */}
-                <div 
-                    className={`fixed inset-0 transition-opacity duration-300 ${
-                        isVisible ? 'bg-gray-500 bg-opacity-75' : 'bg-gray-500 bg-opacity-0'
-                    }`} 
-                    onClick={handleClose} 
-                />
 
+                <div
+                    className={`fixed inset-0 transition-opacity duration-300 ${isVisible ? 'bg-gray-500 bg-opacity-75' : 'bg-gray-500 bg-opacity-0'}`}
+                    onClick={handleClose}
+                />
                 <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
 
-                {/* Modal panel */}
-                <div 
+                <div
                     className={`inline-block align-bottom bg-white text-left overflow-hidden shadow-xl transform transition-all duration-300 sm:my-8 sm:align-middle sm:max-w-md sm:w-full ${
-                        isVisible 
-                            ? 'translate-y-0 opacity-100' 
-                            : 'translate-y-4 opacity-0 sm:translate-y-0 sm:scale-95'
+                        isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 sm:translate-y-0 sm:scale-95'
                     }`}
                     style={{ borderRadius: '8px' }}
                 >
-                    {/* Red header for delete modal */}
+                    {/* Red header */}
                     <div className="bg-red-600 px-5 py-3">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-base font-semibold text-white">Delete Driver</h3>
-                            <button 
-                                onClick={handleClose} 
-                                className="text-white/80 hover:text-white transition-colors"
-                            >
+                            <h3 className="text-base font-semibold text-white">Delete Service Record</h3>
+                            <button onClick={handleClose} className="text-white/80 hover:text-white transition-colors">
                                 <X className="size-4" />
                             </button>
                         </div>
@@ -93,22 +68,26 @@ const handleDelete = async () => {
                     <div className="px-5 py-4">
                         <div className="flex items-start gap-3">
                             <div className="flex-shrink-0">
-                                <div className="size-10 bg-red-100 flex items-center justify-center">
+                                <div className="size-10 bg-red-100 flex items-center justify-center" style={{ borderRadius: '4px' }}>
                                     <AlertTriangle className="size-5 text-red-600" />
                                 </div>
                             </div>
                             <div className="flex-1">
                                 <p className="text-sm text-gray-700">
-                                    Are you sure you want to delete driver <span className="font-semibold">{driver.driver_full_name}</span>?
+                                    Are you sure you want to delete the service record for{' '}
+                                    <span className="font-semibold">{record.plate_number ?? 'this vehicle'}</span>
+                                    {record.service_date && (
+                                        <> on <span className="font-semibold">{record.service_date}</span></>
+                                    )}?
                                 </p>
                                 <p className="text-xs text-gray-500 mt-2">
-                                    This action cannot be undone. The driver will be permanently removed from the system.
+                                    This action cannot be undone. The record will be permanently removed from the system.
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Form Actions */}
+                    {/* Footer */}
                     <div className="bg-gray-50 px-5 py-3 flex justify-end gap-2 border-t border-gray-100">
                         <button
                             onClick={handleClose}
@@ -124,14 +103,7 @@ const handleDelete = async () => {
                             className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium shadow-sm disabled:opacity-50 flex items-center gap-2"
                             style={{ borderRadius: '4px' }}
                         >
-                            {isDeleting ? (
-                                <>
-                                    <span className="animate-spin">⏳</span>
-                                    Deleting...
-                                </>
-                            ) : (
-                                'Delete Driver'
-                            )}
+                            {isDeleting ? <><span className="animate-spin">⏳</span> Deleting...</> : 'Delete Record'}
                         </button>
                     </div>
                 </div>

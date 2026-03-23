@@ -193,84 +193,84 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver, avail
         setFormData({ ...formData, vehicle_ids: updatedIds });
     };
 
-   const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Mark all fields as touched
-    const allTouched = {};
-    Object.keys(formData).forEach(key => {
-        allTouched[key] = true;
-    });
-    setTouched(allTouched);
-    
-    // Validate form
-    if (!validateForm()) {
-        showToast('Please fix the validation errors', 'error');
-        return;
-    }
-    
-    setIsSubmitting(true);
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        // Mark all fields as touched
+        const allTouched = {};
+        Object.keys(formData).forEach(key => {
+            allTouched[key] = true;
+        });
+        setTouched(allTouched);
+        
+        // Validate form
+        if (!validateForm()) {
+            showToast('Please fix the validation errors', 'error');
+            return;
+        }
+        
+        setIsSubmitting(true);
 
-    // Create FormData object for file upload
-    const submitData = new FormData();
-    
-    // Add method spoofing for PUT
-    submitData.append('_method', 'PUT');
-    
-    // Append all form fields
-    submitData.append('driver_full_name', formData.driver_full_name);
-    submitData.append('email', formData.email);
-    submitData.append('contact_number', formData.contact_number);
-    submitData.append('license_number', formData.license_number);
-    submitData.append('address', formData.address || '');
-    submitData.append('status', formData.status);
-    
-    // Only append driver_image if a new file was selected
-    if (formData.driver_image instanceof File) {
-        submitData.append('driver_image', formData.driver_image);
-    }
-    
-    // Append vehicle_ids as array
-    formData.vehicle_ids.forEach(id => {
-        submitData.append('vehicle_ids[]', id);
-    });
-
-    try {
-        // Use axios to submit the form
-        const response = await axios.post(`/drivers/${driver.id}`, submitData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            }
+        // Create FormData object for file upload
+        const submitData = new FormData();
+        
+        // Add method spoofing for PUT
+        submitData.append('_method', 'PUT');
+        
+        // Append all form fields
+        submitData.append('driver_full_name', formData.driver_full_name);
+        submitData.append('email', formData.email);
+        submitData.append('contact_number', formData.contact_number);
+        submitData.append('license_number', formData.license_number);
+        submitData.append('address', formData.address || '');
+        submitData.append('status', formData.status);
+        
+        // Only append driver_image if a new file was selected
+        if (formData.driver_image instanceof File) {
+            submitData.append('driver_image', formData.driver_image);
+        }
+        
+        // Append vehicle_ids as array
+        formData.vehicle_ids.forEach(id => {
+            submitData.append('vehicle_ids[]', id);
         });
 
-        // Handle success
-        setIsSubmitting(false);
-        showToast('Driver updated successfully', 'success');
-        
-        // Call onSave with the updated driver data
-        if (onSave) {
-            onSave(response.data.driver || response.data);
+        try {
+            // Use axios to submit the form
+            const response = await axios.post(`/drivers/${driver.id}`, submitData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                }
+            });
+
+            // Handle success
+            setIsSubmitting(false);
+    
+            
+            // Call onSave with the updated driver data
+            if (onSave) {
+                onSave(response.data.driver || response.data);
+            }
+            
+            resetForm();
+            onClose();
+            
+        } catch (error) {
+            setIsSubmitting(false);
+            
+            // Handle validation errors
+            if (error.response && error.response.data.errors) {
+                setErrors(error.response.data.errors);
+                showToast('Failed to update driver', 'error');
+            } else if (error.response && error.response.data.message) {
+                showToast(error.response.data.message, 'error');
+            } else {
+                showToast('An unexpected error occurred', 'error');
+            }
+            
+            console.log('Error:', error);
         }
-        
-        resetForm();
-        onClose();
-        
-    } catch (error) {
-        setIsSubmitting(false);
-        
-        // Handle validation errors
-        if (error.response && error.response.data.errors) {
-            setErrors(error.response.data.errors);
-            showToast('Failed to update driver', 'error');
-        } else if (error.response && error.response.data.message) {
-            showToast(error.response.data.message, 'error');
-        } else {
-            showToast('An unexpected error occurred', 'error');
-        }
-        
-        console.log('Error:', error);
-    }
-};
+    };
 
     const resetForm = () => {
         setFormData({
@@ -542,27 +542,7 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver, avail
                                 )}
                             </div>
 
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
-                                    Address
-                                </label>
-                                <textarea
-                                    value={formData.address}
-                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                    onBlur={() => handleBlur('address')}
-                                    rows="2"
-                                    className={`w-full px-3 py-1.5 text-sm border ${
-                                        touched.address && errors.address ? 'border-red-500' : 'border-gray-200'
-                                    } focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400`}
-                                    placeholder="Complete address"
-                                    style={{ borderRadius: '4px' }}
-                                />
-                                {touched.address && errors.address && (
-                                    <p className="text-xs text-red-600 mt-1">{errors.address}</p>
-                                )}
-                            </div>
-
-                            {/* Vehicle Assignment Section */}
+                                {/* Vehicle Assignment Section */}
                             <div className="border-t border-green-100 pt-4">
                                 <label className="block text-xs font-medium text-gray-700 mb-2">
                                     Assigned Vehicles
@@ -699,6 +679,28 @@ export default function EditDriverModal({ isOpen, onClose, onSave, driver, avail
                                     <p className="text-xs text-red-600 mt-1">{errors.vehicle_ids}</p>
                                 )}
                             </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                    Address
+                                </label>
+                                <textarea
+                                    value={formData.address}
+                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                    onBlur={() => handleBlur('address')}
+                                    rows="2"
+                                    className={`w-full px-3 py-1.5 text-sm border ${
+                                        touched.address && errors.address ? 'border-red-500' : 'border-gray-200'
+                                    } focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400`}
+                                    placeholder="Complete address"
+                                    style={{ borderRadius: '4px' }}
+                                />
+                                {touched.address && errors.address && (
+                                    <p className="text-xs text-red-600 mt-1">{errors.address}</p>
+                                )}
+                            </div>
+
+                        
                         </div>
 
                         {/* Form Actions */}

@@ -520,28 +520,7 @@ const handleSubmit = async (e) => {
                                     <p className="text-xs text-red-600 mt-1">{errors.status}</p>
                                 )}
                             </div>
-
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
-                                    Address
-                                </label>
-                                <textarea
-                                    value={formData.address}
-                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                    onBlur={() => handleBlur('address')}
-                                    rows="2"
-                                    className={`w-full px-3 py-1.5 text-sm border ${
-                                        touched.address && errors.address ? 'border-red-500' : 'border-gray-200'
-                                    } focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400`}
-                                    placeholder="Complete address"
-                                    style={{ borderRadius: '4px' }}
-                                />
-                                {touched.address && errors.address && (
-                                    <p className="text-xs text-red-600 mt-1">{errors.address}</p>
-                                )}
-                            </div>
-
-                            {/* Vehicle Assignment Section */}
+                                {/* Vehicle Assignment Section */}
                             <div className="border-t border-green-100 pt-4">
                                 <label className="block text-xs font-medium text-gray-700 mb-2">
                                     Assign Vehicles
@@ -680,6 +659,28 @@ const handleSubmit = async (e) => {
                                     <p className="text-xs text-red-600 mt-1">{errors.vehicle_ids}</p>
                                 )}
                             </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                    Address
+                                </label>
+                                <textarea
+                                    value={formData.address}
+                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                    onBlur={() => handleBlur('address')}
+                                    rows="2"
+                                    className={`w-full px-3 py-1.5 text-sm border ${
+                                        touched.address && errors.address ? 'border-red-500' : 'border-gray-200'
+                                    } focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400`}
+                                    placeholder="Complete address"
+                                    style={{ borderRadius: '4px' }}
+                                />
+                                {touched.address && errors.address && (
+                                    <p className="text-xs text-red-600 mt-1">{errors.address}</p>
+                                )}
+                            </div>
+
+                        
                         </div>
 
                         {/* Form Actions */}

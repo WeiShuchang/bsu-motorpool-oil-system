@@ -11,7 +11,7 @@ export default function AdminHeader() {
         { name: 'Dashboard', href: route('admin.dashboard'), icon: LayoutDashboard, current: route().current('admin.dashboard') },
         { name: 'Vehicles', href: route('admin.vehicles.index'), icon: Truck, current: route().current('admin.vehicles.index') },
         { name: 'Drivers', href: route('admin.drivers'), icon: Users, current: route().current('admin.drivers')},
-        { name: 'Service Records', href: '#', icon: Droplet, current: false },
+        { name: 'Service Records', href: route('service-records.index'), icon: Droplet, current: route().current('service-records.index') },
     ];
 
     return (

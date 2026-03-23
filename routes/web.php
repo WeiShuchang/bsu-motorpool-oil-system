@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Controller;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ServiceRecordsController;
 use App\Http\Controllers\VehicleController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -64,10 +66,33 @@ Route::middleware('auth')->group(function () {
     });
 
 
+    Route::prefix('driver')->group(function () {
+        Route::get('/get-assigned-vehicles', [DriverController::class, 'getAssignedVehicles'])->name('driver.get-vehicles');
+
+    });
+
+    Route::get('/vehicle/{id}/add-service', [DriverController::class, 'addServiceRecord'])->name('driver.vehicle.add-service');
+
+
     // Profile routes (accessible by both)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::get('/driver/vehicle/{id}', [DriverController::class, 'showVehicleDetails'])->name('driver.vehicle.details');
+
+    Route::post('/vehicles/{vehicle}/service-record', [ServiceRecordsController::class, 'store'])->name('service-record.store');
+    
+    Route::get('/admin/dashboard/vehicles', [VehicleController::class, 'fetchAdminVehicles'])->name('admin.vehicles');
+    Route::get('/admin/dashboard/drivers', [DriverController::class, 'fetchAdminDrivers'])->name('admin.drivers');
+    Route::get('/admin/dashboard/records', [ServiceRecordsController::class, 'fetchAdminServiceRecords'])->name('admin.records');
+    Route::get('/admin/dashboard/stats', [VehicleController::class, 'fetchAdminStats'])->name('admin.stats');
+
+    Route::get('/service-records', [ServiceRecordsController::class, 'index'])->name('service-records.index');
+//  Route::post('/service-records/{vehicle_id}', [ServiceRecordsController::class, 'store'])->name('service-records.store');
+//  Route::delete('/service-records/{id}', [ServiceRecordsController::class, 'destroy'])->name('service-records.destroy');
+
+
 });
 
 require __DIR__.'/auth.php';
