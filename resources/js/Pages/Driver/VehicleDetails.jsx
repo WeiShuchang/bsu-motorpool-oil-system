@@ -1,11 +1,39 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router  } from '@inertiajs/react';
 import DriverHeader from '@/Components/DriverHeader';
-import { Calendar, Droplet, DollarSign, FileText, ChevronLeft, ChevronRight, Plus, Gauge, User, Wrench, Shield } from 'lucide-react';
-import { useState } from 'react';
+import { Calendar, Droplet, DollarSign, FileText, ChevronLeft, ChevronRight, Plus, Gauge, User, Wrench, Shield, Trash2  } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';     
 
 export default function VehicleDetails({ vehicle, serviceRecords = [], stats = {} }) {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [records, setRecords] = useState(serviceRecords);
     const [activeTab, setActiveTab] = useState('overview');
+    const [deletingId, setDeletingId] = useState(null);
+
+   const handleDeleteRecord = async (recordId) => {
+    if (!confirm('Are you sure you want to delete this service record? This cannot be undone.')) return;
+
+    setDeletingId(recordId);
+    try {
+        await axios.delete(`/service-records/${recordId}`);
+
+        // Reload only the serviceRecords prop from the server, stay on history tab
+        router.reload({
+            only: ['serviceRecords', 'stats'],
+            onSuccess: () => {
+                setActiveTab('history');
+            },
+        });
+    } catch {
+        alert('Failed to delete service record. Please try again.');
+    } finally {
+        setDeletingId(null);
+    }
+};
+
+useEffect(() => {
+    setRecords(serviceRecords);
+}, [serviceRecords]);
     
     // Sample data in case vehicle prop is not passed yet
     const vehicleData = {
@@ -422,7 +450,7 @@ export default function VehicleDetails({ vehicle, serviceRecords = [], stats = {
                                         </div>
                                     </div>
                                     <div className="p-6">
-                                        {serviceRecords.length > 0 ? (
+                                        {records.length > 0 ? (
                                             <div className="overflow-x-auto">
                                                 <table className="w-full text-sm">
                                                     <thead>
@@ -435,10 +463,11 @@ export default function VehicleDetails({ vehicle, serviceRecords = [], stats = {
                                                             <th className="text-left py-3 px-2 font-medium text-gray-600">Provider</th>
                                                             <th className="text-left py-3 px-2 font-medium text-gray-600">Cost</th>
                                                             <th className="text-left py-3 px-2 font-medium text-gray-600">Notes</th>
+                                                            <th className="text-left py-3 px-2 font-medium text-gray-600">Action</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {serviceRecords.map((record) => (
+                                                        {records.map((record) => (
                                                             <tr key={record.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                                                 <td className="py-3 px-2 font-medium">{formatDate(record.service_date)}</td>
                                                                 <td className="py-3 px-2">
@@ -452,6 +481,20 @@ export default function VehicleDetails({ vehicle, serviceRecords = [], stats = {
                                                                 <td className="py-3 px-2">{record.service_provider}</td>
                                                                 <td className="py-3 px-2 font-medium">₱{Number(record.cost).toLocaleString()}</td>
                                                                 <td className="py-3 px-2 text-sm text-gray-500">{record.notes || '-'}</td>
+                                                                <td className="py-3 px-2">
+                                                                    <button
+                                                                        onClick={() => handleDeleteRecord(record.id)}
+                                                                        disabled={deletingId === record.id}
+                                                                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    >
+                                                                        {deletingId === record.id ? (
+                                                                            <span className="animate-spin">⏳</span>
+                                                                        ) : (
+                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                        )}
+                                                                        Delete
+                                                                    </button>
+                                                                </td>
                                                             </tr>
                                                         ))}
                                                     </tbody>
@@ -472,7 +515,6 @@ export default function VehicleDetails({ vehicle, serviceRecords = [], stats = {
                                     </div>
                                 </div>
                             )}
-
                             {/* Details Tab */}
                             {activeTab === 'details' && (
                                 <div className="bg-white rounded-xl border border-gray-200">

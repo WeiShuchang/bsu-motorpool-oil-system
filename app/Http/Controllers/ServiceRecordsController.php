@@ -13,10 +13,10 @@ use Inertia\Inertia;
 class ServiceRecordsController extends Controller
 {
 
-   public function store(Request $request, $vehicle_id)
+public function store(Request $request, $vehicle_id)
 {
     $request->validate([
-        'driver_id'        => 'required|exists:driver_models,id',   // add this
+        'driver_id'        => 'nullable|exists:driver_models,id',
         'service_date'     => 'required|date',
         'mileage'          => 'required|integer|min:0',
         'lubrication_type' => 'required|string',
@@ -25,16 +25,26 @@ class ServiceRecordsController extends Controller
         'cost'             => 'required|numeric|min:0',
         'service_provider' => 'required|string',
         'notes'            => 'nullable|string',
-        'coolant'          => 'nullable|numeric',
+
         'break_cleaner'    => 'nullable|boolean',
         'wiper_washer'     => 'nullable|boolean',
         'engine_flush'     => 'nullable|boolean',
         'penetrating_oil'  => 'nullable|boolean',
     ]);
 
+    // Use request driver_id if provided (admin), otherwise look up from logged-in user (driver)
+    $driverId = $request->driver_id
+        ?? AccountDriverModel::where('user_id', Auth::id())->value('driver_id');
+
+    if (!$driverId) {
+        return response()->json([
+            'message' => 'No driver profile found for the current user.'
+        ], 422);
+    }
+
     ServiceRecordModel::create([
         'vehicle_id'       => $vehicle_id,
-        'driver_id'        => $request->driver_id,   // ← from request, not Auth lookup
+        'driver_id'        => $driverId,
         'service_date'     => $request->service_date,
         'mileage'          => $request->mileage,
         'lubrication_type' => $request->lubrication_type,
