@@ -318,9 +318,10 @@ export default function AdminDashboard() {
                                             <tr className="border-b border-green-100">
                                                 <th className="text-center py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Plate Number</th>
                                                 <th className="text-left   py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Make</th>
-                                                <th className="text-left   py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
+                                                <th className="text-left   py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Year Model</th>
                                                 <th className="text-left   py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Seat Capacity</th>
                                                 <th className="text-left   py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Last Service</th>
+                                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Oil Level</th>
                                                 <th className="text-left   py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                                 <th className="text-left   py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                             </tr>
@@ -350,7 +351,31 @@ export default function AdminDashboard() {
                                                     <td className="py-3 px-4 text-gray-600">{vehicle.model}</td>
                                                     <td className="py-3 px-4 text-gray-600">{vehicle.seatCapacity}</td>
                                                     <td className="py-3 px-4 text-gray-600">{vehicle.lastService ?? '—'}</td>
-                                                    <td className="py-3 px-4">{getStatusBadge(vehicle.status, vehicle.statusColor)}</td>
+                                                   
+                                                    <td className="py-3 px-4">
+                                                        {vehicle.overall_oil_engine_capacity > 0 ? (
+                                                            <div className="w-28">
+                                                                <div className="text-xs text-gray-500 mb-1">
+                                                                    <span>{Math.round((vehicle.current_oil_in_engine / vehicle.overall_oil_engine_capacity) * 100)}%</span>
+                                                                </div>
+                                                                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                                                    <div
+                                                                        className={`h-full rounded-full ${
+                                                                            (vehicle.current_oil_in_engine / vehicle.overall_oil_engine_capacity) >= 0.5
+                                                                                ? 'bg-green-500'
+                                                                                : (vehicle.current_oil_in_engine / vehicle.overall_oil_engine_capacity) >= 0.25
+                                                                                ? 'bg-yellow-500'
+                                                                                : 'bg-red-500'
+                                                                        }`}
+                                                                        style={{ width: `${Math.min((vehicle.current_oil_in_engine / vehicle.overall_oil_engine_capacity) * 100, 100)}%` }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-xs text-gray-400">-</span>
+                                                        )}
+                                                    </td>
+                                                     <td className="py-3 px-4">{getStatusBadge(vehicle.status, vehicle.statusColor)}</td>
                                                     <td className="py-3 px-4">
                                                         <Link
                                                             href={`/driver/vehicle/${vehicle.id}`}

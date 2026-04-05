@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Car, LogOut, LayoutDashboard, Truck, Users, Droplet } from 'lucide-react';
+import { Car, LogOut, LayoutDashboard, Truck, Users, Droplet, FileText } from 'lucide-react';
 import { useState } from 'react';
 
 export default function AdminHeader() {
@@ -12,6 +12,7 @@ export default function AdminHeader() {
         { name: 'Vehicles', href: route('admin.vehicles.index'), icon: Truck, current: route().current('admin.vehicles.index') },
         { name: 'Drivers', href: route('admin.drivers'), icon: Users, current: route().current('admin.drivers')},
         { name: 'Service Records', href: route('service-records.index'), icon: Droplet, current: route().current('service-records.index') },
+        { name: 'Reports', href: route('admin.export'), icon: FileText, current: route().current('admin.export') },
     ];
 
     return (

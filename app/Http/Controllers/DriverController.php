@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\DriverRequest;
 use App\Http\Resources\DriverResource;
 use App\Models\AccountDriverModel;
+use App\Models\ServiceRecordModel;
 use App\Models\User;
 use App\Models\VehicleAssignment;
 use Illuminate\Support\Facades\Hash;
@@ -29,7 +30,7 @@ public function showDriverPage(Request $request)
                 ->orWhere('email', 'like', "%{$search}%")
                 ->orWhere('contact_number', 'like', "%{$search}%");
         })
-        ->latest()
+        ->orderBy('id', 'desc')
         ->paginate(10)
         ->withQueryString();
         
@@ -306,17 +307,34 @@ public function update(DriverRequest $request, DriverModel $driver)
         return $images[$make] ?? 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080';
     }
 
-
-        public function showVehicleDetails(Request $request, $id)
+    public function showVehicleDetails(Request $request, $id)
     {
         $vehicle = VehicleModel::with('drivers')->find($id);
         
         if (!$vehicle) {
             return redirect()->back()->with('error', 'Vehicle not found');
         }
-        
+
+        $serviceRecords = ServiceRecordModel::with('driver')
+            ->where('vehicle_id', $id)
+            ->orderBy('service_date', 'desc')
+            ->get();
+
+        $totalCost = $serviceRecords->sum('cost');
+        $avgCost = $serviceRecords->count() > 0 ? $totalCost / $serviceRecords->count() : 0;
+        $lastService = $serviceRecords->first()?->service_date;
+        $totalMileage = $serviceRecords->max('mileage');
+
         return Inertia::render('Driver/VehicleDetails', [
-            'vehicle' => $vehicle
+            'vehicle' => $vehicle,
+            'serviceRecords' => $serviceRecords,
+            'stats' => [
+                'total_services' => $serviceRecords->count(),
+                'total_maintenance_cost' => number_format($totalCost, 2),
+                'avg_cost' => round($avgCost, 2),
+                'last_service' => $lastService ? \Carbon\Carbon::parse($lastService)->format('M d, Y') : null,
+                'total_mileage' => $totalMileage ? number_format($totalMileage) : null,
+            ]
         ]);
     }
 

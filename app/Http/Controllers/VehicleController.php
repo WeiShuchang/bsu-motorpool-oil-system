@@ -23,19 +23,20 @@ class VehicleController extends Controller
         $vehicles = VehicleModel::latest()->get();
         return response()->json($vehicles);
     }
-
-      public function store(Request $request)
-    {
-     $validated = $request->validate([
-        'make' => 'required|string|max:255',
-        'model' => 'required|string|max:255',
-        'seat_capacity' => 'required|integer|min:1',
-        'plate_number' => 'required|string|unique:vehicle_models,plate_number', // Add this line
-        'transmission' => 'required|string',
-        'status' => 'required|string',
-        'images' => 'nullable|array',
-        'images.*' => 'image|mimes:jpeg,png,jpg'
-    ]);
+    
+    public function store(Request $request){
+        $validated = $request->validate([
+            'make' => 'required|string|max:255',
+            'model' => 'required|string|max:255',
+            'seat_capacity' => 'required|integer|min:1',
+            'plate_number' => 'required|string|unique:vehicle_models,plate_number',
+            'transmission' => 'required|string',
+            'status' => 'required|string',
+            'current_oil_in_engine' => 'nullable|numeric|min:0',
+            'overall_oil_engine_capacity' => 'nullable|numeric|min:0',
+            'images' => 'nullable|array',
+            'images.*' => 'image|mimes:jpeg,png,jpg'
+        ]);
 
         $imagePaths = [];
         if ($request->hasFile('images')) {
@@ -45,18 +46,21 @@ class VehicleController extends Controller
             }
         }
 
-    $vehicle = VehicleModel::create([
-        'driver_images' => json_encode($imagePaths),
-        'make' => $validated['make'],
-        'model' => $validated['model'],
-        'seat_capacity' => $validated['seat_capacity'],
-        'plate_number' => $validated['plate_number'], // Add this line
-        'transmission' => $validated['transmission'],
-        'status' => $validated['status']
-    ]);
+        $vehicle = VehicleModel::create([
+            'driver_images' => json_encode($imagePaths),
+            'make' => $validated['make'],
+            'model' => $validated['model'],
+            'seat_capacity' => $validated['seat_capacity'],
+            'plate_number' => $validated['plate_number'],
+            'transmission' => $validated['transmission'],
+            'status' => $validated['status'],
+            'current_oil_in_engine' => $validated['current_oil_in_engine'] ?? null,
+            'overall_oil_engine_capacity' => $validated['overall_oil_engine_capacity'] ?? null,
+        ]);
 
         return response()->json($vehicle, 201);
     }
+
 public function update(Request $request, VehicleModel $vehicle)
 {
     $validated = $request->validate([
@@ -65,19 +69,18 @@ public function update(Request $request, VehicleModel $vehicle)
         'seat_capacity' => 'required|integer|min:1',
         'transmission' => 'required|string',
         'status' => 'required|string',
+        'current_oil_in_engine' => 'nullable|numeric|min:0',
+        'overall_oil_engine_capacity' => 'nullable|numeric|min:0',
         'images' => 'nullable|array',
         'images.*' => 'image|mimes:jpeg,png,jpg|max:2048'
     ]);
 
-    // Handle images
     $imagePaths = [];
 
-    // Keep existing images that weren't removed
     if ($request->has('existing_images')) {
         $imagePaths = $request->input('existing_images');
     }
 
-    // Add new images
     if ($request->hasFile('images')) {
         foreach ($request->file('images') as $image) {
             $path = $image->store('vehicles', 'public');
@@ -85,7 +88,6 @@ public function update(Request $request, VehicleModel $vehicle)
         }
     }
 
-    // Delete old images that are no longer needed
     if ($vehicle->driver_images) {
         $oldImages = json_decode($vehicle->driver_images, true) ?? [];
         $imagesToDelete = array_diff($oldImages, $imagePaths);
@@ -95,6 +97,9 @@ public function update(Request $request, VehicleModel $vehicle)
     }
 
     $validated['driver_images'] = json_encode($imagePaths);
+    $validated['current_oil_in_engine'] = $request->input('current_oil_in_engine');
+    $validated['overall_oil_engine_capacity'] = $request->input('overall_oil_engine_capacity');
+    
     $vehicle->update($validated);
 
     return response()->json($vehicle);
@@ -114,54 +119,55 @@ public function update(Request $request, VehicleModel $vehicle)
 
         return response()->json(['message' => 'Vehicle deleted successfully']);
     }
+public function fetchAdminVehicles()
+{
+    $vehicles = VehicleModel::select([
+            'id',
+            'driver_images',
+            'plate_number',
+            'make',
+            'model',
+            'seat_capacity',
+            'status',
+            'current_oil_in_engine',
+            'overall_oil_engine_capacity',
+        ])
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($vehicle) {
+            $lastService = ServiceRecordModel::where('vehicle_id', $vehicle->id)
+                ->orderBy('service_date', 'desc')
+                ->value('service_date');
 
-  
- public function fetchAdminVehicles()
-    {
-        $vehicles = VehicleModel::select([
-                'id',
-                'driver_images',
-                'plate_number',
-                'make',
-                'model',
-                'seat_capacity',
-                'status',
-            ])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($vehicle) {
-                $lastService = ServiceRecordModel::where('vehicle_id', $vehicle->id)
-                    ->orderBy('service_date', 'desc')
-                    ->value('service_date');
- 
-                $images = json_decode($vehicle->driver_images, true);
-                $firstImage = collect($images)->first(fn($path) => !empty($path));
- 
-                return [
-                    'id'           => $vehicle->id,
-                    'image'        => $firstImage ? asset('storage/' . $firstImage) : null,
-                    'plate'        => $vehicle->plate_number,
-                    'make'         => $vehicle->make,
-                    'model'        => $vehicle->model,
-                    'seatCapacity' => $vehicle->seat_capacity,
-                    'lastService'  => $lastService
-                                        ? \Carbon\Carbon::parse($lastService)->format('M d, Y')
-                                        : '—',
-                    'status'       => $vehicle->status,
-                    'statusColor'  => match (strtolower($vehicle->status)) {
-                        'on track' => 'green',
-                        'due soon' => 'yellow',
-                        'overdue'  => 'red',
-                        default    => 'green',
-                    },
-                ];
-            });
- 
-        return response()->json([
-            'vehicles' => $vehicles,
-        ]);
-    }
+            $images = json_decode($vehicle->driver_images, true);
+            $firstImage = collect($images)->first(fn($path) => !empty($path));
 
+            return [
+                'id'                        => $vehicle->id,
+                'image'                     => $firstImage ? asset('storage/' . $firstImage) : null,
+                'plate'                     => $vehicle->plate_number,
+                'make'                      => $vehicle->make,
+                'model'                     => $vehicle->model,
+                'seatCapacity'              => $vehicle->seat_capacity,
+                'lastService'               => $lastService
+                                                ? \Carbon\Carbon::parse($lastService)->format('M d, Y')
+                                                : '—',
+                'status'                    => $vehicle->status,
+                'statusColor'               => match (strtolower($vehicle->status)) {
+                    'on track' => 'green',
+                    'due soon' => 'yellow',
+                    'overdue'  => 'red',
+                    default    => 'green',
+                },
+                'current_oil_in_engine'      => $vehicle->current_oil_in_engine,
+                'overall_oil_engine_capacity' => $vehicle->overall_oil_engine_capacity,
+            ];
+        });
+
+    return response()->json([
+        'vehicles' => $vehicles,
+    ]);
+}
             public function fetchAdminStats()
     {
         return response()->json([

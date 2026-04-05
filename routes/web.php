@@ -3,6 +3,7 @@
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ServiceRecordsController;
 use App\Http\Controllers\VehicleController;
 use Illuminate\Foundation\Application;
@@ -87,10 +88,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/dashboard/drivers', [DriverController::class, 'fetchAdminDrivers'])->name('admin.drivers');
     Route::get('/admin/dashboard/records', [ServiceRecordsController::class, 'fetchAdminServiceRecords'])->name('admin.records');
     Route::get('/admin/dashboard/stats', [VehicleController::class, 'fetchAdminStats'])->name('admin.stats');
+    Route::get('/admin/dashboard/export', [ReportsController::class, 'showExportPage'])->name('admin.export');
 
     Route::get('/service-records', [ServiceRecordsController::class, 'index'])->name('service-records.index');
-//  Route::post('/service-records/{vehicle_id}', [ServiceRecordsController::class, 'store'])->name('service-records.store');
-//  Route::delete('/service-records/{id}', [ServiceRecordsController::class, 'destroy'])->name('service-records.destroy');
+
+
+ Route::post('/service-records/{vehicle_id}', [ServiceRecordsController::class, 'store'])->name('service-records.store');
+    Route::delete('/service-records/{id}', [ServiceRecordsController::class, 'destroy'])->name('service-records.destroy');
+    Route::get('/admin/reports/export', [ReportsController::class, 'export'])->name('reports.export');
 
 
 });

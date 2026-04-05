@@ -1,6 +1,6 @@
 import { Link, usePage, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Search, Filter, Image as ImageIcon, Car } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Filter, Image as ImageIcon, Car, Eye  } from 'lucide-react';
 import AddVehicleModal from '@/Components/Modals/AddVehicleModal';
 import EditVehicleModal from '@/Components/Modals/EditVehicleModal';
 import DeleteVehicleModal from '@/Components/Modals/DeleteVehicleModal';
@@ -57,6 +57,9 @@ const fetchVehicles = async () => {
                         <div className="h-4 bg-gray-200 rounded w-20"></div>
                     </td>
                     <td className="py-3 px-4">
+                        <div className="h-5 bg-gray-200 rounded-full w-16"></div>
+                    </td>
+                       <td className="py-3 px-4">
                         <div className="h-5 bg-gray-200 rounded-full w-16"></div>
                     </td>
                     <td className="py-3 px-4">
@@ -163,6 +166,7 @@ const handleDeleteVehicle = (deletedVehicleId) => {
                                         <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Plate Number</th>
                                         <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Seat Capacity</th>
                                         <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Transmission</th>
+                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Oil Level</th>
                                         <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
@@ -200,9 +204,40 @@ const handleDeleteVehicle = (deletedVehicleId) => {
                                             </td>
                                             <td className="py-3 px-4 text-gray-600">{vehicle.seat_capacity} seats</td>
                                             <td className="py-3 px-4 text-gray-600">{vehicle.transmission}</td>
+                                               <td className="py-3 px-4">
+                                                {vehicle.overall_oil_engine_capacity > 0 ? (
+                                                    <div className="w-28">
+                                                        <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                                            <span>{Math.round((vehicle.current_oil_in_engine / vehicle.overall_oil_engine_capacity) * 100)}%</span>
+                                                        </div>
+                                                        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                                            <div
+                                                                className={`h-full rounded-full ${
+                                                                    (vehicle.current_oil_in_engine / vehicle.overall_oil_engine_capacity) >= 0.5
+                                                                        ? 'bg-green-500'
+                                                                        : (vehicle.current_oil_in_engine / vehicle.overall_oil_engine_capacity) >= 0.25
+                                                                        ? 'bg-yellow-500'
+                                                                        : 'bg-red-500'
+                                                                }`}
+                                                                style={{ width: `${Math.min((vehicle.current_oil_in_engine / vehicle.overall_oil_engine_capacity) * 100, 100)}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs text-gray-400">-</span>
+                                                )}
+                                            </td>
                                             <td className="py-3 px-4">{getStatusBadge(vehicle.status)}</td>
+                                         
                                             <td className="py-3 px-4">
                                                 <div className="flex items-center gap-2">
+                                                    <a
+                                                        href={`/driver/vehicle/${vehicle.id}`}
+                                                        className="text-gray-400 hover:text-blue-600 transition-colors"
+                                                        title="View Details"
+                                                    >
+                                                        <Eye className="size-4" />
+                                                    </a>
                                                     <button 
                                                         onClick={() => {
                                                             setSelectedVehicle(vehicle);

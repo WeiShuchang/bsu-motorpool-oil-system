@@ -20,7 +20,9 @@ class VehicleModel extends Model
         'wiper_washer',
         'engine_flush',
         'penetrating_oil',
-        'plate_number'
+        'plate_number',
+        'current_oil_in_engine',
+        'overall_oil_engine_capacity',
     ];
 
     public function drivers()

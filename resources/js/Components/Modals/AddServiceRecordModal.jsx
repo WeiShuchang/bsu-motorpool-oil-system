@@ -239,7 +239,12 @@ export default function AddServiceRecordModal({ isOpen, onClose, onSave, vehicle
                                                 {vehicles.map(vehicle => (
                                                     <div
                                                         key={vehicle.id}
-                                                        onClick={() => { setFormData({ ...formData, vehicle_id: vehicle.id }); setVehicleDropdownOpen(false); }}
+                                                        // Vehicle dropdown item onClick
+                                                            onClick={() => {
+                                                                setFormData({ ...formData, vehicle_id: vehicle.id });
+                                                                setErrors(prev => ({ ...prev, vehicle_id: '' }));
+                                                                setVehicleDropdownOpen(false);
+                                                            }}
                                                         className={`px-3 py-2 hover:bg-green-50 cursor-pointer flex items-center justify-between ${formData.vehicle_id === vehicle.id ? 'bg-green-50' : ''}`}
                                                     >
                                                         <div className="flex items-center gap-2">
@@ -293,7 +298,12 @@ export default function AddServiceRecordModal({ isOpen, onClose, onSave, vehicle
                                                 {drivers.map(driver => (
                                                     <div
                                                         key={driver.id}
-                                                        onClick={() => { setFormData({ ...formData, driver_id: driver.id }); setDriverDropdownOpen(false); }}
+                                                        // Driver dropdown item onClick
+                                                        onClick={() => {
+                                                            setFormData({ ...formData, driver_id: driver.id });
+                                                            setErrors(prev => ({ ...prev, driver_id: '' }));
+                                                            setDriverDropdownOpen(false);
+                                                        }}
                                                         className={`px-3 py-2 hover:bg-green-50 cursor-pointer flex items-center justify-between ${formData.driver_id === driver.id ? 'bg-green-50' : ''}`}
                                                     >
                                                         <div className="flex items-center gap-2">

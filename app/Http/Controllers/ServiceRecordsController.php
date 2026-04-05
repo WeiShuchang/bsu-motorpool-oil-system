@@ -13,43 +13,45 @@ use Inertia\Inertia;
 class ServiceRecordsController extends Controller
 {
 
-    public function store(Request $request, $vehicle_id)
-    {
-        $request->validate([
-            'service_date' => 'required|date',
-            'mileage' => 'required|integer',
-            'lubrication_type' => 'required|string',
-            'oil_type' => 'required|string',
-            'quantity' => 'required|numeric',
-            'cost' => 'required|numeric',
-            'service_provider' => 'required|string',
-        ]);
+   public function store(Request $request, $vehicle_id)
+{
+    $request->validate([
+        'driver_id'        => 'required|exists:driver_models,id',   // add this
+        'service_date'     => 'required|date',
+        'mileage'          => 'required|integer|min:0',
+        'lubrication_type' => 'required|string',
+        'oil_type'         => 'required|string',
+        'quantity'         => 'required|numeric|min:0.1',
+        'cost'             => 'required|numeric|min:0',
+        'service_provider' => 'required|string',
+        'notes'            => 'nullable|string',
+        'coolant'          => 'nullable|numeric',
+        'break_cleaner'    => 'nullable|boolean',
+        'wiper_washer'     => 'nullable|boolean',
+        'engine_flush'     => 'nullable|boolean',
+        'penetrating_oil'  => 'nullable|boolean',
+    ]);
 
-        // Get driver_id from pivot table
-        $driverId = AccountDriverModel::where('user_id', Auth::id())->value('driver_id');
+    ServiceRecordModel::create([
+        'vehicle_id'       => $vehicle_id,
+        'driver_id'        => $request->driver_id,   // ← from request, not Auth lookup
+        'service_date'     => $request->service_date,
+        'mileage'          => $request->mileage,
+        'lubrication_type' => $request->lubrication_type,
+        'oil_type'         => $request->oil_type,
+        'quantity'         => $request->quantity,
+        'cost'             => $request->cost,
+        'service_provider' => $request->service_provider,
+        'notes'            => $request->notes,
+        'coolant'          => $request->coolant,
+        'break_cleaner'    => $request->boolean('break_cleaner'),
+        'wiper_washer'     => $request->boolean('wiper_washer'),
+        'engine_flush'     => $request->boolean('engine_flush'),
+        'penetrating_oil'  => $request->boolean('penetrating_oil'),
+    ]);
 
-        ServiceRecordModel::create([
-            'vehicle_id' => $vehicle_id,
-            'driver_id' => $driverId,
-            'service_date' => $request->service_date,
-            'mileage' => $request->mileage,
-            'lubrication_type' => $request->lubrication_type,
-            'oil_type' => $request->oil_type,
-            'quantity' => $request->quantity,
-            'cost' => $request->cost,
-            'service_provider' => $request->service_provider,
-            'notes' => $request->notes,
-            'coolant' => $request->coolant,
-            'break_cleaner' => $request->break_cleaner ?? false,
-            'wiper_washer' => $request->wiper_washer ?? false,
-            'engine_flush' => $request->engine_flush ?? false,
-            'penetrating_oil' => $request->penetrating_oil ?? false,
-        ]);
-
-        return response()->json([
-            'success' => true
-        ]);
-    }
+    return response()->json(['success' => true]);
+}
 
         public function fetchAdminServiceRecords()
     {
@@ -126,6 +128,17 @@ class ServiceRecordsController extends Controller
             'vehicles' => VehicleModel::select('id', 'plate_number', 'make', 'model')->get(),
             'drivers'  => DriverModel::select('id', 'driver_full_name')->where('status', 'active')->get(),
         ]);
+    }
+
+        public function destroy($id)
+    {
+        $serviceRecord = ServiceRecordModel::findOrFail($id);
+        $serviceRecord->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Service record deleted successfully.'
+        ], 200);
     }
 
 }

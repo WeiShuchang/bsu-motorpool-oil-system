@@ -3,28 +3,28 @@ import DriverHeader from '@/Components/DriverHeader';
 import { Calendar, Droplet, DollarSign, FileText, ChevronLeft, ChevronRight, Plus, Gauge, User, Wrench, Shield } from 'lucide-react';
 import { useState } from 'react';
 
-export default function VehicleDetails({ vehicle }) {
+export default function VehicleDetails({ vehicle, serviceRecords = [], stats = {} }) {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [activeTab, setActiveTab] = useState('overview');
     
     // Sample data in case vehicle prop is not passed yet
-    const vehicleData = vehicle || {
-        id: 1,
-        plate_number: 'ABC-1234',
-        make: 'Toyota',
-        model: 'Hiace',
-        year: '2020',
-        seat_capacity: 15,
-        status: 'active',
-        transmission: 'Manual',
-        assigned_driver: 'John Driver',
-        total_mileage: '45,230',
-        total_maintenance_cost: '5,000',
-        last_service: 'Jan 15, 2026',
-        next_due: 'Apr 15, 2026',
-        total_services: 2,
-        avg_cost: 2500,
-        driver_images: '["vehicles/M9VDsBLqTStmVP1UHRC7Bi3ow8KCiuWIqqXTyRi8.jpg","vehicles/Jxs33FPSISI8BYzDQ8pikf8eNK16U2Vl2A8drZEc.jpg","vehicles/SDg3G5MqFW9S9zrCXu9EcZwqeSVb71ytky6fYJGi.jpg"]'
+    const vehicleData = {
+        ...(vehicle || {
+            id: 1,
+            plate_number: 'ABC-1234',
+            make: 'Toyota',
+            model: 'Hiace',
+            seat_capacity: 15,
+            status: 'active',
+            transmission: 'Manual',
+            driver_images: '[]'
+        }),
+        total_mileage: stats.total_mileage || null,
+        total_maintenance_cost: stats.total_maintenance_cost || null,
+        avg_cost: stats.avg_cost || null,
+        last_service: stats.last_service || null,
+        total_services: stats.total_services || 0,
+        assigned_driver: vehicle?.drivers?.[0]?.driver_full_name || '-',
     };
 
     // Helper function to display value or dash
@@ -152,15 +152,35 @@ export default function VehicleDetails({ vehicle }) {
                             {/* Key Metrics Grid */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Gauge className="size-5 text-gray-500" />
-                                        <p className="text-sm text-gray-600">Total Mileage</p>
-                                    </div>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {vehicleData.total_mileage ? `${vehicleData.total_mileage} km` : '-'}
-                                    </p>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Droplet className="size-5 text-gray-500" />
+                                    <p className="text-sm text-gray-600">Oil Level</p>
                                 </div>
-
+                                {vehicle?.overall_oil_engine_capacity > 0 ? (
+                                    <>
+                                        <p className="text-2xl font-bold text-gray-900 mb-2">
+                                            {Math.round((vehicle.current_oil_in_engine / vehicle.overall_oil_engine_capacity) * 100)}%
+                                        </p>
+                                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full rounded-full ${
+                                                    (vehicle.current_oil_in_engine / vehicle.overall_oil_engine_capacity) >= 0.5
+                                                        ? 'bg-green-500'
+                                                        : (vehicle.current_oil_in_engine / vehicle.overall_oil_engine_capacity) >= 0.25
+                                                        ? 'bg-yellow-500'
+                                                        : 'bg-red-500'
+                                                }`}
+                                                style={{ width: `${Math.min((vehicle.current_oil_in_engine / vehicle.overall_oil_engine_capacity) * 100, 100)}%` }}
+                                            />
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {vehicle.current_oil_in_engine}L / {vehicle.overall_oil_engine_capacity}L
+                                        </p>
+                                    </>
+                                ) : (
+                                    <p className="text-2xl font-bold text-gray-900">-</p>
+                                )}
+                            </div>
 
                                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                                     <div className="flex items-center gap-2 mb-2">
@@ -195,7 +215,10 @@ export default function VehicleDetails({ vehicle }) {
                                 </div>
                             )}
                         </div>
+                        
                     </div>
+
+                    
 
                     {/* Stats Cards Grid */}
                     <div className="grid md:grid-cols-4 gap-6 mb-8">
@@ -314,6 +337,8 @@ export default function VehicleDetails({ vehicle }) {
                         </div>
                     </div>
 
+                    
+
                     {/* Tabs Section with Working Functionality */}
                     <div className="w-full">
                         {/* Tab Navigation */}
@@ -397,7 +422,7 @@ export default function VehicleDetails({ vehicle }) {
                                         </div>
                                     </div>
                                     <div className="p-6">
-                                        {vehicleData.total_services > 0 ? (
+                                        {serviceRecords.length > 0 ? (
                                             <div className="overflow-x-auto">
                                                 <table className="w-full text-sm">
                                                     <thead>
@@ -413,35 +438,22 @@ export default function VehicleDetails({ vehicle }) {
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {/* Sample data - replace with actual service history from database */}
-                                                        <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                                            <td className="py-3 px-2 font-medium">Jan 15, 2026</td>
-                                                            <td className="py-3 px-2">
-                                                                <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 border border-green-200">
-                                                                    Engine Oil
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-3 px-2">10W-40 Synthetic</td>
-                                                            <td className="py-3 px-2">4L</td>
-                                                            <td className="py-3 px-2">45,230 km</td>
-                                                            <td className="py-3 px-2">BSU Maintenance</td>
-                                                            <td className="py-3 px-2 font-medium">₱2,500</td>
-                                                            <td className="py-3 px-2 text-sm text-gray-500">Regular maintenance</td>
-                                                        </tr>
-                                                        <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                                            <td className="py-3 px-2 font-medium">Oct 15, 2025</td>
-                                                            <td className="py-3 px-2">
-                                                                <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 border border-green-200">
-                                                                    Engine Oil
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-3 px-2">10W-40 Synthetic</td>
-                                                            <td className="py-3 px-2">4L</td>
-                                                            <td className="py-3 px-2">42,100 km</td>
-                                                            <td className="py-3 px-2">BSU Maintenance</td>
-                                                            <td className="py-3 px-2 font-medium">₱2,500</td>
-                                                            <td className="py-3 px-2 text-sm text-gray-500">Scheduled service</td>
-                                                        </tr>
+                                                        {serviceRecords.map((record) => (
+                                                            <tr key={record.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                                                <td className="py-3 px-2 font-medium">{formatDate(record.service_date)}</td>
+                                                                <td className="py-3 px-2">
+                                                                    <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 border border-green-200">
+                                                                        {record.lubrication_type}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-3 px-2">{record.oil_type}</td>
+                                                                <td className="py-3 px-2">{record.quantity}L</td>
+                                                                <td className="py-3 px-2">{record.mileage ? `${Number(record.mileage).toLocaleString()} km` : '-'}</td>
+                                                                <td className="py-3 px-2">{record.service_provider}</td>
+                                                                <td className="py-3 px-2 font-medium">₱{Number(record.cost).toLocaleString()}</td>
+                                                                <td className="py-3 px-2 text-sm text-gray-500">{record.notes || '-'}</td>
+                                                            </tr>
+                                                        ))}
                                                     </tbody>
                                                 </table>
                                             </div>

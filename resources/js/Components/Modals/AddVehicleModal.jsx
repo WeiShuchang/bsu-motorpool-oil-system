@@ -10,10 +10,12 @@ export default function AddVehicleModal({ isOpen, onClose, onSave }) {
         make: '',
         model: '',
         seat_capacity: '',
-        plate_number: '', // Add this line
         status: 'available',
         transmission: 'manual',
-        images: []
+        current_oil_in_engine: '',
+        overall_oil_engine_capacity: '',
+        images: [],
+        existing_images: []
     });
     const [imagePreviews, setImagePreviews] = useState([]);
     const [errors, setErrors] = useState({});
@@ -70,6 +72,8 @@ export default function AddVehicleModal({ isOpen, onClose, onSave }) {
             submitData.append('plate_number', formData.plate_number);
             submitData.append('status', formData.status);
             submitData.append('transmission', formData.transmission);
+            submitData.append('current_oil_in_engine', formData.current_oil_in_engine);
+            submitData.append('overall_oil_engine_capacity', formData.overall_oil_engine_capacity);
             
             formData.images.forEach((image, index) => {
                 submitData.append(`images[${index}]`, image);
@@ -93,6 +97,8 @@ export default function AddVehicleModal({ isOpen, onClose, onSave }) {
                     plate_number: '',
                     status: 'available',
                     transmission: 'manual',
+                    current_oil_in_engine: '',
+                    overall_oil_engine_capacity: '',
                     images: []
                 });
                 setImagePreviews([]);
@@ -254,7 +260,7 @@ export default function AddVehicleModal({ isOpen, onClose, onSave }) {
 
                                 <div>
                                     <label className="block text-xs font-medium text-gray-700 mb-1">
-                                        Model <span className="text-red-500">*</span>
+                                        Year Model <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -335,6 +341,7 @@ export default function AddVehicleModal({ isOpen, onClose, onSave }) {
                                     <p className="mt-1 text-xs text-red-600">{errors.plate_number}</p>
                                 )}
                             </div>
+
                             <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">
                                     Vehicle Status
@@ -355,6 +362,48 @@ export default function AddVehicleModal({ isOpen, onClose, onSave }) {
                                     <p className="mt-1 text-xs text-red-600">{errors.status}</p>
                                 )}
                             </div>
+                            {/* Oil Fields */}
+
+    <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+            Current Oil in Engine <span className="text-gray-400">(L)</span>
+        </label>
+        <input
+            type="number"
+            name="current_oil_in_engine"
+            value={formData.current_oil_in_engine}
+            onChange={handleInputChange}
+            min="0"
+            step="0.01"
+            className="w-full px-3 py-1.5 text-sm border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400"
+            placeholder="e.g., 3.50"
+            style={{ borderRadius: '4px' }}
+        />
+        {errors.current_oil_in_engine && (
+            <p className="mt-1 text-xs text-red-600">{errors.current_oil_in_engine}</p>
+        )}
+    </div>
+
+    <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+            Overall Oil Capacity <span className="text-gray-400">(L)</span>
+        </label>
+        <input
+            type="number"
+            name="overall_oil_engine_capacity"
+            value={formData.overall_oil_engine_capacity}
+            onChange={handleInputChange}
+            min="0"
+            step="0.01"
+            className="w-full px-3 py-1.5 text-sm border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-400 focus:border-green-400"
+            placeholder="e.g., 5.00"
+            style={{ borderRadius: '4px' }}
+        />
+        {errors.overall_oil_engine_capacity && (
+            <p className="mt-1 text-xs text-red-600">{errors.overall_oil_engine_capacity}</p>
+        )}
+    </div>
+
               
 </div>
                         </div>
